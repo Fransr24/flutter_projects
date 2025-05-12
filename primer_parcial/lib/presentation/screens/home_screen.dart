@@ -1,20 +1,34 @@
-import 'package:primer_parcial/data/football_teams.dart';
+import 'package:primer_parcial/data/football_teams_repository.dart';
 import 'package:primer_parcial/domain/models/team.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:primer_parcial/domain/reporitory/teams_repository.dart';
 import 'package:primer_parcial/presentation/widgets/drawer_menu.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   static const String name = 'home';
   String userName;
   HomeScreen({super.key, this.userName = ""});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   final scafoldKey = GlobalKey<ScaffoldState>();
+  late Future<List<Team>> teamsFuture;
+  final TeamsRepository _repository = LocalTeamsRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    teamsFuture = _repository.getTeams();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Welcome $userName")),
+      appBar: AppBar(title: Text("Welcome ${widget.userName}")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -25,14 +39,17 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            Expanded(child: _TeamsListView()),
+            Expanded(child: _TeamsListView(teamsFuture: teamsFuture)),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           {
-            context.push("/add_edit");
+            context.push("/add_edit", extra: "");
+            setState(() {
+              teamsFuture = _repository.getTeams();
+            });
           }
         },
         backgroundColor: Colors.yellow,
@@ -45,28 +62,21 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _TeamsListView extends StatefulWidget {
-  //final List<Team> teamList;
+  final Future<List<Team>> teamsFuture;
 
-  const _TeamsListView({super.key /* required this.teamList */});
+  const _TeamsListView({super.key, required this.teamsFuture});
 
   @override
   State<_TeamsListView> createState() => _TeamsListViewState();
 }
 
 class _TeamsListViewState extends State<_TeamsListView> {
-  late final Future<List<Team>> teamsFuture;
-  final TeamsRepository _repository = JsonTeamsRepository();
-
-  @override
-  void initState() {
-    super.initState();
-    teamsFuture = _repository.getTeams();
-  }
+  final TeamsRepository _repository = LocalTeamsRepository();
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: teamsFuture,
+      future: widget.teamsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -104,7 +114,7 @@ class _TeamListItem extends StatelessWidget {
                     team.flag!,
                     width: 50,
                     height: 100,
-                    fit: BoxFit.fill,
+                    fit: BoxFit.fitHeight,
                   ),
                 )
                 : Icon(Icons.flag_circle),
@@ -112,7 +122,7 @@ class _TeamListItem extends StatelessWidget {
         subtitle: Text(team.confederation),
         trailing: Icon(Icons.arrow_forward),
         onTap: () {
-          context.push('/team_detail/${team.country}');
+          context.push('/team_detail/${team.id.toString()}');
         },
       ),
     );

@@ -123,7 +123,31 @@ class _$TeamsDao extends TeamsDao {
                   'country': item.country,
                   'confederation': item.confederation,
                   'worldCups': item.worldCups,
-                  'isWorldChampion': item.isWorldChampion ? 1 : 0,
+                  'isWorldChampion': item.isWorldChampion,
+                  'flag': item.flag
+                }),
+        _teamUpdateAdapter = UpdateAdapter(
+            database,
+            'Team',
+            ['id'],
+            (Team item) => <String, Object?>{
+                  'id': item.id,
+                  'country': item.country,
+                  'confederation': item.confederation,
+                  'worldCups': item.worldCups,
+                  'isWorldChampion': item.isWorldChampion,
+                  'flag': item.flag
+                }),
+        _teamDeletionAdapter = DeletionAdapter(
+            database,
+            'Team',
+            ['id'],
+            (Team item) => <String, Object?>{
+                  'id': item.id,
+                  'country': item.country,
+                  'confederation': item.confederation,
+                  'worldCups': item.worldCups,
+                  'isWorldChampion': item.isWorldChampion,
                   'flag': item.flag
                 });
 
@@ -135,6 +159,10 @@ class _$TeamsDao extends TeamsDao {
 
   final InsertionAdapter<Team> _teamInsertionAdapter;
 
+  final UpdateAdapter<Team> _teamUpdateAdapter;
+
+  final DeletionAdapter<Team> _teamDeletionAdapter;
+
   @override
   Future<List<Team>> findAllTeams() async {
     return _queryAdapter.queryList('SELECT * FROM Team',
@@ -143,12 +171,35 @@ class _$TeamsDao extends TeamsDao {
             country: row['country'] as String,
             confederation: row['confederation'] as String,
             worldCups: row['worldCups'] as int,
-            isWorldChampion: (row['isWorldChampion'] as int) != 0,
+            isWorldChampion: row['isWorldChampion'] as int,
             flag: row['flag'] as String?));
+  }
+
+  @override
+  Future<Team?> findTeamById(int id) async {
+    return _queryAdapter.query('SELECT * FROM Movie WHERE id = ?1',
+        mapper: (Map<String, Object?> row) => Team(
+            id: row['id'] as int,
+            country: row['country'] as String,
+            confederation: row['confederation'] as String,
+            worldCups: row['worldCups'] as int,
+            isWorldChampion: row['isWorldChampion'] as int,
+            flag: row['flag'] as String?),
+        arguments: [id]);
   }
 
   @override
   Future<void> insertTeam(Team team) async {
     await _teamInsertionAdapter.insert(team, OnConflictStrategy.abort);
+  }
+
+  @override
+  Future<void> updateTeam(Team team) async {
+    await _teamUpdateAdapter.update(team, OnConflictStrategy.abort);
+  }
+
+  @override
+  Future<void> deleteTeam(Team team) async {
+    await _teamDeletionAdapter.delete(team);
   }
 }

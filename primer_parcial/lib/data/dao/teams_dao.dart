@@ -7,6 +7,9 @@ abstract class TeamsDao {
   @Query('SELECT * FROM Team')
   Future<List<Team>> findAllTeams();
 
+  @Query('SELECT * FROM Movie WHERE id = :id')
+  Future<Team?> findTeamById(int id);
+
   /* otras maneras de hacer query
 @Query('SELECT name FROM Person')
   Stream<List<String>> findAllPeopleName();
@@ -17,5 +20,9 @@ abstract class TeamsDao {
   @insert
   Future<void> insertTeam(Team team);
 
-  // tengo tambien @update y @delete
+  @update
+  Future<void> updateTeam(Team team);
+
+  @delete
+  Future<void> deleteTeam(Team team);
 }

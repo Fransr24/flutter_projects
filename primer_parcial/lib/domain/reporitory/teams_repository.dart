@@ -6,4 +6,5 @@ abstract class TeamsRepository {
 
   Future<void> insertTeam(Team team);
   Future<void> updateTeam(Team team);
+  Future<void> deleteTeam(Team team);
 }

@@ -1,8 +1,19 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:primer_parcial/presentation/screens/login_screen.dart';
+import 'package:primer_parcial/core/database/database.dart';
 import 'core/router/app_router.dart';
 
-void main() {
+late AppDatabase database;
+void main() async {
+  // Ensure that the binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize the database and measure initialization time
+  final stopwatch = Stopwatch()..start();
+  database = await AppDatabase.create('app_database.db');
+  stopwatch.stop();
+  log('Database initialized in ${stopwatch.elapsed.inMilliseconds}ms');
+
   runApp(const MainApp());
 }
 
@@ -12,8 +23,8 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

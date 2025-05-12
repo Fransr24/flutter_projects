@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:floor/floor.dart';
-import 'package:primer_parcial/data/football_teams.dart';
+import 'package:primer_parcial/data/football_teams_repository.dart';
 import 'package:primer_parcial/domain/reporitory/teams_repository.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
 

@@ -2,16 +2,16 @@ import 'package:floor/floor.dart';
 
 @entity
 class Team {
-  @primaryKey
-  final int id;
+  @PrimaryKey(autoGenerate: true)
+  final int? id;
   final String country;
   final String confederation;
   final int worldCups;
-  final bool isWorldChampion;
+  final int isWorldChampion;
   String? flag;
 
   Team({
-    required this.id,
+    this.id,
     required this.country,
     required this.confederation,
     required this.worldCups,
