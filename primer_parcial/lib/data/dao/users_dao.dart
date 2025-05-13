@@ -1,14 +1,14 @@
 import 'package:floor/floor.dart';
-import 'package:primer_parcial/domain/models/team.dart';
+import 'package:primer_parcial/domain/models/user.dart';
 // dao identifica todas las operaciones que voy a hacer sobre los equipos
 
 @dao
-abstract class TeamsDao {
-  @Query('SELECT * FROM Team')
-  Future<List<Team>> findAllTeams();
+abstract class UsersDao {
+  @Query('SELECT * FROM User')
+  Future<List<User>> findAllUsers();
 
   @Query('SELECT * FROM Team WHERE id = :id')
-  Future<Team?> findTeamById(int id);
+  Future<User?> findUserById(int id);
 
   /* otras maneras de hacer query
 @Query('SELECT name FROM Person')
@@ -18,11 +18,11 @@ abstract class TeamsDao {
   Stream<Person?> findPersonById(int id);
 */
   @insert
-  Future<void> insertTeam(Team team);
+  Future<void> insertUser(User user);
 
   @update
-  Future<void> updateTeam(Team team);
+  Future<void> updateUser(User user);
 
   @delete
-  Future<void> deleteTeam(Team team);
+  Future<void> deleteUser(User user);
 }

@@ -24,4 +24,5 @@ dev_dependencies:
 flutter:
   assets:
     - assets/teams.json
+    - assets/users.json
   uses-material-design: true

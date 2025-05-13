@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 
 class DrawerMenu extends StatefulWidget {
   final GlobalKey<ScaffoldState> scafoldKey;
-  const DrawerMenu({super.key, required this.scafoldKey});
+  String userId;
+  DrawerMenu({super.key, required this.scafoldKey, required this.userId});
 
   @override
   State<DrawerMenu> createState() => _DrawerMenuState();
@@ -30,8 +31,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).pop();
-                        context.push(menuItems[value].link);
+                        context.push("/login");
                       },
                       child: Text("Yes"),
                     ),
@@ -39,7 +39,14 @@ class _DrawerMenuState extends State<DrawerMenu> {
                 ),
           );
         } else {
-          context.push(menuItems[value].link);
+          final link = menuItems[value].link;
+          Navigator.of(context).pop();
+
+          if (link == "/profile") {
+            context.push(link, extra: widget.userId);
+          } else {
+            context.push(link);
+          }
           widget.scafoldKey.currentState?.closeDrawer();
         }
       },

@@ -5,9 +5,10 @@ import 'package:primer_parcial/domain/models/team.dart';
 import 'package:primer_parcial/domain/reporitory/teams_repository.dart';
 
 class AddEditScreen extends StatefulWidget {
+  String userId;
   String id;
 
-  AddEditScreen({super.key, this.id = ""});
+  AddEditScreen({super.key, this.id = "", required this.userId});
   @override
   State<AddEditScreen> createState() => _AddEditScreenState();
 }
@@ -81,7 +82,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
                     controller: inputCountry,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      hintText: "Intert country",
+                      hintText: "Insert country",
                     ),
                   ),
                 ),
@@ -184,7 +185,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
                                   _repository.updateTeam(newTeam),
                                   setState(() {}),
-                                  Navigator.pop(context),
+                                  context.push("/home"),
                                 },
                             },
                         },
@@ -217,7 +218,8 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
                                         _repository.deleteTeam(team);
                                         setState(() {});
-                                        Navigator.pop(context);
+                                        context.push("/home");
+                                        ;
                                       },
                                       child: Text("Yes"),
                                     ),
@@ -259,7 +261,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
                 controller: inputCountry,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: "Intert country",
+                  hintText: "Insert country",
                 ),
               ),
             ),
@@ -359,7 +361,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
                               _repository.insertTeam(newTeam),
                               setState(() {}),
-                              Navigator.pop(context),
+                              context.push("/home"),
                             },
                         },
                     },
