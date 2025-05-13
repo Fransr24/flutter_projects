@@ -35,3 +35,13 @@ class User implements ExplainInterface {
     );
   }
 }
+
+class UserProvider {
+  final int id;
+
+  UserProvider({this.id = 0});
+
+  UserProvider copyWith({int? id}) {
+    return UserProvider(id: id ?? this.id);
+  }
+}

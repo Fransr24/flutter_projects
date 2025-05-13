@@ -70,10 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
           floatingActionButton: FloatingActionButton(
             onPressed: () {
               {
-                context.push(
-                  "/add_edit",
-                  extra: {'id': '', 'userId': widget.userId},
-                );
+                context.push("/add_edit", extra: '');
                 setState(() {
                   teamsFuture = _repository.getTeams();
                 });
@@ -145,7 +142,7 @@ class _TeamListItem extends StatelessWidget {
     return Card(
       child: ListTile(
         leading:
-            team.flag != null
+            (team.flag?.isNotEmpty ?? false)
                 ? ClipOval(
                   child: Image.network(
                     team.flag!,
@@ -166,7 +163,7 @@ class _TeamListItem extends StatelessWidget {
         subtitle: Text(team.confederation),
         trailing: Icon(Icons.arrow_forward),
         onTap: () {
-          context.push('/team_detail/${team.id.toString()}/2}');
+          context.push('/team_detail/${team.id.toString()}');
         },
       ),
     );

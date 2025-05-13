@@ -6,8 +6,7 @@ import 'package:primer_parcial/domain/reporitory/teams_repository.dart';
 
 class TeamDetail extends StatefulWidget {
   final String id;
-  String userId;
-  TeamDetail({super.key, required this.id, required this.userId});
+  const TeamDetail({super.key, required this.id});
 
   @override
   State<TeamDetail> createState() => _TeamDetailState();
@@ -33,10 +32,7 @@ class _TeamDetailState extends State<TeamDetail> {
           IconButton(
             icon: Icon(Icons.edit),
             onPressed: () {
-              context.push(
-                "/add_edit",
-                extra: {'id': '${team!.id}', 'userId': '2'},
-              );
+              context.push("/add_edit", extra: team!.id);
               setState(() {});
             },
           ),
@@ -73,7 +69,7 @@ class _TeamView extends StatelessWidget {
           Center(
             child: ClipOval(
               child:
-                  team.flag != null
+                  team.flag != null && team.flag!.isNotEmpty
                       ? ClipOval(
                         child: Image.network(
                           team.flag!,

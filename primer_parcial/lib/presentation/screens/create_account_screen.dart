@@ -142,7 +142,9 @@ class CreateAccountScreen extends StatelessWidget {
                               teamFan: inputTeamFan.text,
                               profilePicture: inputProfilePicture.text,
                             ),
-
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("User Created")),
+                            ),
                             _repository.insertUser(newUser),
                             context.push("/login"),
                           },

@@ -16,22 +16,13 @@ final appRouter = GoRouter(
       builder: (context, state) => HomeScreen(userId: state.extra.toString()),
     ),
     GoRoute(
-      path: "/team_detail/:team_id/:user_id",
-      builder: (context, state) {
-        final String teamId = state.pathParameters['team_id']!;
-        final String userId = state.pathParameters['user_id']!;
-        return TeamDetail(id: teamId, userId: userId);
-      },
+      path: "/team_detail/:team_id",
+      builder:
+          (context, state) => TeamDetail(id: state.pathParameters['team_id']!),
     ),
     GoRoute(
       path: "/add_edit",
-      builder: (context, state) {
-        final Map<String, String> extras = state.extra as Map<String, String>;
-        final String id = extras['id'] ?? '';
-        final String userId = extras['userId'] ?? '';
-
-        return AddEditScreen(id: id, userId: userId);
-      },
+      builder: (context, state) => AddEditScreen(id: state.extra.toString()),
     ),
     GoRoute(
       path: "/profile",

@@ -62,12 +62,16 @@ class _UserViewState extends State<_UserView> {
   TextEditingController inputProfilePicture = TextEditingController();
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
     inputuser.text = widget.user.user;
     inputpassword.text = widget.user.password;
     inputAge.text = widget.user.age;
     inputTeamFan.text = widget.user.teamFan;
     inputProfilePicture.text = widget.user.profilePicture ?? "";
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -86,31 +90,12 @@ class _UserViewState extends State<_UserView> {
                             width: 200,
                             height: 200,
                             fit: BoxFit.fitHeight,
-                            loadingBuilder: (
-                              BuildContext context,
-                              Widget child,
-                              ImageChunkEvent? loadingProgress,
-                            ) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value:
-                                      loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress
-                                                  .cumulativeBytesLoaded /
-                                              (loadingProgress
-                                                      .expectedTotalBytes ??
-                                                  1)
-                                          : null,
-                                ),
-                              );
-                            },
                             errorBuilder: (
                               BuildContext context,
                               Object error,
                               StackTrace? stackTrace,
                             ) {
-                              return Icon(Icons.error, size: 200);
+                              return Icon(Icons.person, size: 200);
                             },
                           )
                           : Icon(Icons.flag_circle, size: 200),

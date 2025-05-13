@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:primer_parcial/data/football_teams_repository.dart';
 import 'package:primer_parcial/domain/models/team.dart';
 import 'package:primer_parcial/domain/reporitory/teams_repository.dart';
+import 'package:primer_parcial/presentation/provider/users_provider.dart';
 
-class AddEditScreen extends StatefulWidget {
-  String userId;
+class AddEditScreen extends ConsumerStatefulWidget {
   String id;
 
-  AddEditScreen({super.key, this.id = "", required this.userId});
+  AddEditScreen({super.key, this.id = ""});
   @override
-  State<AddEditScreen> createState() => _AddEditScreenState();
+  ConsumerState<AddEditScreen> createState() => _AddEditScreenState();
 }
 
-class _AddEditScreenState extends State<AddEditScreen> {
+class _AddEditScreenState extends ConsumerState<AddEditScreen> {
   final TeamsRepository _repository = LocalTeamsRepository();
   late final Future<Team> editTeam;
 
@@ -41,6 +42,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userId = ref.watch(userNotifierProvider);
     late Team newTeam;
     // edito elemento
     if (isEdit) {
@@ -185,7 +187,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
                                   _repository.updateTeam(newTeam),
                                   setState(() {}),
-                                  context.push("/home"),
+                                  context.push("/home", extra: userId.id),
                                 },
                             },
                         },
@@ -218,7 +220,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
                                         _repository.deleteTeam(team);
                                         setState(() {});
-                                        context.push("/home");
+                                        context.push("/home", extra: userId.id);
                                         ;
                                       },
                                       child: Text("Yes"),
@@ -361,7 +363,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
                               _repository.insertTeam(newTeam),
                               setState(() {}),
-                              context.push("/home"),
+                              context.push("/home", extra: userId.id),
                             },
                         },
                     },

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:primer_parcial/data/users_repository.dart';
 import 'package:primer_parcial/domain/models/user.dart';
 import 'package:primer_parcial/domain/reporitory/users_repository.dart';
-import 'package:primer_parcial/presentation/screens/home_screen.dart';
+import 'package:primer_parcial/presentation/provider/users_provider.dart';
 import 'package:go_router/go_router.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  //TextEditing controler accede a comportamiento del qidget
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   TextEditingController inputController = TextEditingController();
   TextEditingController inputController2 = TextEditingController();
   late Future<List<User>> usersFuture;
@@ -67,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: TextField(
                     controller: inputController2,
+                    obscureText: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: "Password",
@@ -82,6 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if ((u.user == inputController.text) &&
                           (u.password == inputController2.text)) {
                         userFound = true;
+                        ref
+                            .read(userNotifierProvider.notifier)
+                            .setUserId(u.id!);
                         context.push("/home", extra: u.id);
                         break;
                       }
