@@ -38,7 +38,7 @@ class CreateAccountScreen extends StatelessWidget {
           ),
           const SizedBox(height: 28),
 
-          Text("Username", style: TextStyle(fontSize: 18)),
+          Text("Username"),
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -51,7 +51,7 @@ class CreateAccountScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          Text("Password", style: TextStyle(fontSize: 18)),
+          Text("Password"),
 
           const SizedBox(height: 10),
           Padding(
@@ -65,7 +65,7 @@ class CreateAccountScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          Text("Age", style: TextStyle(fontSize: 18)),
+          Text("Age"),
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -79,7 +79,7 @@ class CreateAccountScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          Text("User's team ", style: TextStyle(fontSize: 18)),
+          Text("User's team "),
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -94,7 +94,7 @@ class CreateAccountScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 10),
-          Text("Profile Picture (optional)", style: TextStyle(fontSize: 18)),
+          Text("Profile Picture (optional)"),
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),

@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   late Future<List<User>> usersFuture;
   final UsersRepository _repository = LocalUsersRepository();
 
-  String inputText = "Inicie sesión";
+  String inputText = "Log In";
   static var inputUser = User(user: "", password: "", age: '', teamFan: '');
 
   @override

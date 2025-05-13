@@ -31,7 +31,8 @@ class _DrawerMenuState extends State<DrawerMenu> {
                     ),
                     TextButton(
                       onPressed: () {
-                        context.push("/login");
+                        Navigator.of(context).pop();
+                        context.push(menuItems[value].link);
                       },
                       child: Text("Yes"),
                     ),
@@ -42,7 +43,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
           final link = menuItems[value].link;
           Navigator.of(context).pop();
 
-          if (link == "/profile") {
+          if (link == "/profile" || link == "/home") {
             context.push(link, extra: widget.userId);
           } else {
             context.push(link);

@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:primer_parcial/data/football_teams_repository.dart';
 import 'package:primer_parcial/domain/models/team.dart';
 import 'package:flutter/material.dart';
@@ -68,8 +66,6 @@ class _TeamView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme;
-
     return Center(
       child: Column(
         children: [
@@ -97,24 +93,14 @@ class _TeamView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 50),
-          Text("Country: ${team.country}", style: TextStyle(fontSize: 28)),
-          Text(
-            "Confederation to which it belongs: ${team.confederation}",
-            style: TextStyle(fontSize: 20),
-          ),
+          Text("Country: ${team.country}"),
+          Text("Confederation to which it belongs: ${team.confederation}"),
           Text(
             "This football team currently has ${team.worldCups.toString()} World Cups",
-            style: TextStyle(fontSize: 20),
           ),
           team.isWorldChampion == 1
-              ? Text(
-                "This football team won the las world cup",
-                style: TextStyle(fontSize: 20),
-              )
-              : Text(
-                "This football team has not won the las world cup",
-                style: TextStyle(fontSize: 20),
-              ),
+              ? Text("This football team won the last world cup")
+              : Text("This football team has not won the last world cup"),
         ],
       ),
     );

@@ -176,12 +176,7 @@ class _UserViewState extends State<_UserView> {
           const SizedBox(height: 50),
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  "Username: ${widget.user.user}",
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
+              Expanded(child: Text("Username: ${widget.user.user}")),
               IconButton(
                 icon: Icon(Icons.edit),
                 onPressed: () {
@@ -224,12 +219,7 @@ class _UserViewState extends State<_UserView> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  "Password: ${widget.user.password}",
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
+              Expanded(child: Text("Password: ${widget.user.password}")),
               IconButton(
                 icon: Icon(Icons.edit),
                 onPressed: () {
@@ -273,12 +263,7 @@ class _UserViewState extends State<_UserView> {
 
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  "Age: ${widget.user.age}",
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
+              Expanded(child: Text("Age: ${widget.user.age}")),
               IconButton(
                 icon: Icon(Icons.edit),
                 onPressed: () {
@@ -322,12 +307,7 @@ class _UserViewState extends State<_UserView> {
 
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  "User's team: ${widget.user.teamFan}",
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
+              Expanded(child: Text("User's team: ${widget.user.teamFan}")),
               IconButton(
                 icon: Icon(Icons.edit),
                 onPressed: () {

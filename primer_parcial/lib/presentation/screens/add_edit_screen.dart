@@ -68,13 +68,13 @@ class _AddEditScreenState extends State<AddEditScreen> {
               children: [
                 Center(
                   child: Text(
-                    "Edit team details:",
+                    "Edit team details",
                     style: TextStyle(fontSize: 24),
                   ),
                 ),
                 const SizedBox(height: 28),
 
-                Text("Country", style: TextStyle(fontSize: 18)),
+                Text("Country"),
                 const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -87,7 +87,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                Text("Confederation", style: TextStyle(fontSize: 18)),
+                Text("Confederation"),
 
                 const SizedBox(height: 10),
                 Padding(
@@ -101,7 +101,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                Text("World cups", style: TextStyle(fontSize: 18)),
+                Text("World cups"),
                 const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -130,7 +130,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
                   inactiveThumbColor: Colors.red,
                 ),
                 const SizedBox(height: 10),
-                Text("Flag (optional)", style: TextStyle(fontSize: 18)),
+                Text("Flag (optional)"),
                 const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -247,13 +247,13 @@ class _AddEditScreenState extends State<AddEditScreen> {
           children: [
             Center(
               child: Text(
-                "Add new team details:",
+                "Add new team details",
                 style: TextStyle(fontSize: 24),
               ),
             ),
             const SizedBox(height: 28),
 
-            Text("Country", style: TextStyle(fontSize: 18)),
+            Text("Country"),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -266,7 +266,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
               ),
             ),
             const SizedBox(height: 15),
-            Text("Confederation", style: TextStyle(fontSize: 18)),
+            Text("Confederation"),
 
             const SizedBox(height: 10),
             Padding(
@@ -280,7 +280,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
               ),
             ),
             const SizedBox(height: 15),
-            Text("World cups", style: TextStyle(fontSize: 18)),
+            Text("World cups"),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -309,7 +309,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
               inactiveThumbColor: Colors.red,
             ),
             const SizedBox(height: 10),
-            Text("Flag (optional)", style: TextStyle(fontSize: 18)),
+            Text("Flag (optional)"),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5),
