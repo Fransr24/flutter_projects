@@ -10,28 +10,58 @@ class LightScreen extends StatefulWidget {
 }
 
 class _LightScreenState extends State<LightScreen> {
-  final List<String> lights = [
-    'Luces Living',
-    'Luces Cocina',
-    'Luces Dormitorio',
-  ];
-  String selectedLight = 'Luces Living';
-  bool isLightOn = false;
+  late String selectedLight = "";
+  late bool isLightOn;
   String? selectedTime;
   int? timerMinutes;
+  bool isLoading = true;
+
+  void initState() {
+    _fetchLight();
+    super.initState();
+  }
+
+  Future<void> _fetchLight() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection("luces").limit(1).get();
+
+      if (snapshot.docs.isNotEmpty) {
+        setState(() {
+          selectedLight = snapshot.docs.first.id;
+          isLightOn = snapshot.docs.first.data()['encendido'];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          selectedLight = 'Sin dispositivos';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        selectedLight = 'Error';
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error obteniendo luces: $e")));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final icon = isLightOn ? Icons.lightbulb : Icons.lightbulb_outline;
-    final iconColor = isLightOn ? Colors.yellow.shade600 : Colors.grey.shade700;
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final TextEditingController controller = TextEditingController();
     String selectedUnit = 'minutos';
-
     return Scaffold(
       appBar: DeviceAppBar(
-        availableDevices: lights,
         selectedDevice: selectedLight,
-        onLightChanged: (newLight) {
+        type: DeviceType.luces,
+        onDevChanged: (newLight) {
           setState(() {
             selectedLight = newLight;
           });
@@ -48,17 +78,75 @@ class _LightScreenState extends State<LightScreen> {
                 stream:
                     FirebaseFirestore.instance
                         .collection("luces")
-                        .doc('luz-living')
+                        .doc(selectedLight)
                         .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasData) {
-                    isLightOn = snapshot.data!['encendido'];
-                    return SizedBox(
-                      height: 140,
-                      child: Icon(icon, size: 140, color: iconColor),
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    final data = snapshot.data!.data()!;
+                    final isLightOn = data['encendido'] ?? false;
+
+                    final icon =
+                        isLightOn ? Icons.lightbulb : Icons.lightbulb_outline;
+                    final iconColor =
+                        isLightOn
+                            ? Colors.amber.shade600
+                            : Colors.grey.shade400;
+
+                    return Column(
+                      children: [
+                        SizedBox(
+                          height: 140,
+                          child: Icon(icon, size: 140, color: iconColor),
+                        ),
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Encender/Apagar',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Switch(
+                                  value: isLightOn,
+                                  onChanged: (value) async {
+                                    try {
+                                      await FirebaseFirestore.instance
+                                          .collection('luces')
+                                          .doc(selectedLight)
+                                          .update({'encendido': value});
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Error actualizando el estado del dispositivo",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   } else {
                     return const Text("No data");
@@ -66,54 +154,6 @@ class _LightScreenState extends State<LightScreen> {
                 },
               ),
               const SizedBox(height: 24),
-
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Encender/Apagar',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Switch(
-                        value: isLightOn,
-                        onChanged: (value) async {
-                          setState(() {
-                            isLightOn = value;
-                          });
-                          try {
-                            await FirebaseFirestore.instance
-                                .collection('luces')
-                                .doc('luz-living')
-                                .update({'encendido': value});
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Error actualizando dispositivo"),
-                              ),
-                            );
-                            setState(() {
-                              isLightOn = !value;
-                            });
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
 
               const SizedBox(height: 32),
               Align(
@@ -141,7 +181,7 @@ class _LightScreenState extends State<LightScreen> {
                     try {
                       await FirebaseFirestore.instance
                           .collection('luces')
-                          .doc('luz-living')
+                          .doc(selectedLight)
                           .update({'horario': selectedTime});
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -169,14 +209,18 @@ class _LightScreenState extends State<LightScreen> {
                 stream:
                     FirebaseFirestore.instance
                         .collection("luces")
-                        .doc('luz-living')
+                        .doc(selectedLight)
                         .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasData) {
-                    selectedTime = snapshot.data!['horario'];
+                    try {
+                      selectedTime = snapshot.data!['horario'];
+                    } catch (error) {
+                      return const Text("No data");
+                    }
                     return Text(
                       selectedTime != null
                           ? 'Horario programado: ${selectedTime!}'
@@ -202,7 +246,7 @@ class _LightScreenState extends State<LightScreen> {
                   try {
                     await FirebaseFirestore.instance
                         .collection('luces')
-                        .doc('luz-living')
+                        .doc(selectedLight)
                         .update({'horario': "--:--"});
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -281,10 +325,9 @@ class _LightScreenState extends State<LightScreen> {
                                         controller.text +
                                         " ".toString() +
                                         selectedUnit;
-                                    // Guardá el valor en Firestore o usalo como quieras
                                     await FirebaseFirestore.instance
                                         .collection('luces')
-                                        .doc('luz-living')
+                                        .doc(selectedLight)
                                         .update({'temporizador': tiempoTemp});
 
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -323,14 +366,19 @@ class _LightScreenState extends State<LightScreen> {
                 stream:
                     FirebaseFirestore.instance
                         .collection("luces")
-                        .doc('luz-living')
+                        .doc(selectedLight)
                         .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasData) {
-                    final temp = snapshot.data!['temporizador'];
+                    var temp;
+                    try {
+                      temp = snapshot.data!['temporizador'];
+                    } catch (error) {
+                      return const Text("No data");
+                    }
                     return Text(
                       temp,
                       style: const TextStyle(fontSize: 16, color: Colors.grey),
@@ -356,7 +404,7 @@ class _LightScreenState extends State<LightScreen> {
                   try {
                     await FirebaseFirestore.instance
                         .collection('luces')
-                        .doc('luz-living')
+                        .doc(selectedLight)
                         .update({'temporizador': "00"});
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(

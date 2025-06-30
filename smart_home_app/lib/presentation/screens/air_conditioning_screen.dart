@@ -24,9 +24,9 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: DeviceAppBar(
-        availableDevices: airConditionings,
+        type: DeviceType.aire,
         selectedDevice: selectedairConditioning,
-        onLightChanged: (newairConditioning) {
+        onDevChanged: (newairConditioning) {
           setState(() {
             selectedairConditioning = newairConditioning;
           });
