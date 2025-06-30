@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smart_home_app/firebase_options.dart';
+import 'package:smart_home_app/presentation/widgets/firebase_options.dart';
 
 import 'core/router/app_router.dart';
 import 'package:flutter/material.dart';
