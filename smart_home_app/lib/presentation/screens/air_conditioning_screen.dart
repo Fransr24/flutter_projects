@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
 import 'package:smart_home_app/presentation/widgets/modals/eddit_air_config_modal.dart';
@@ -11,7 +12,7 @@ class AirConditioningScreen extends StatefulWidget {
 }
 
 class _AirConditioningScreenState extends State<AirConditioningScreen> {
-  String selectedAirConditioning = 'Aire Living';
+  String selectedAirConditioning = 'aire';
   bool isairConditioningOn = false;
   TimeOfDay? selectedTime;
   int? timerMinutes;

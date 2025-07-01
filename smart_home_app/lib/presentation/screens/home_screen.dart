@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/domain/models/device_button.dart';
 import 'package:smart_home_app/presentation/widgets/drawer_menu.dart';
 
-// TODO: Cada usuario tiene su propios datos
 // TODO: Storage, pantalla de perfil
 // TODO: Grafico
 // TODO: cambiar la imagen del login
@@ -68,93 +67,109 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final scafoldKey = GlobalKey<ScaffoldState>();
     final user = FirebaseAuth.instance.currentUser;
+    var temperature = "-";
+
     return Scaffold(
       appBar: AppBar(title: Text("Bienvenido ${user!.displayName}")),
       body: SafeArea(
-        child: StreamBuilder(
-          stream:
-              FirebaseFirestore.instance
-                  .collection("aire")
-                  .doc('living')
-                  .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Center(child: Text("No se encontró el dispositivo"));
-            }
-
-            final data = snapshot.data!.data() as Map<String, dynamic>;
-            final temperature = data['temperatura'] ?? '--';
-
-            return Column(
-              children: [
-                const SizedBox(height: 30),
-                Text(
-                  "Temperatura actual en la habitacion principal",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: Text(
-                    "$temperature °C",
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+        child: Column(
+          children: [
+            const SizedBox(height: 30),
+            StreamBuilder(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection("aire")
+                      .where(
+                        'creador',
+                        isEqualTo: FirebaseAuth.instance.currentUser!.uid,
+                      )
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Crea un dispositivo de aire acondicionado para poder ver la temperatura actual",
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    padding: const EdgeInsets.all(20),
-                    children:
-                        deviceButons.map((device) {
-                          return InkWell(
-                            onTap: () => context.push(device.route),
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.5),
-                                    blurRadius: 12,
-                                  ),
-                                ],
+                  );
+                }
+
+                final doc = snapshot.data!.docs.first;
+                final data = doc.data();
+                temperature = data['temperatura'] ?? '--';
+                return Column(
+                  children: [
+                    Text(
+                      "Temperatura actual en la habitacion principal",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        "$temperature °C",
+                        style: const TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                padding: const EdgeInsets.all(20),
+                children:
+                    deviceButons.map((device) {
+                      return InkWell(
+                        onTap: () => context.push(device.route),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 12,
                               ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (device.icon != null)
-                                    Icon(
-                                      device.icon!,
-                                      size: 40,
-                                      color: Theme.of(context).primaryColor,
-                                    ),
-                                  if (device.icon != null)
-                                    const SizedBox(height: 12),
-                                  Text(
-                                    device.label,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (device.icon != null)
+                                Icon(
+                                  device.icon!,
+                                  size: 40,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              if (device.icon != null)
+                                const SizedBox(height: 12),
+                              Text(
+                                device.label,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                          );
-                        }).toList(),
-                  ),
-                ),
-              ],
-            );
-          },
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+              ),
+            ),
+          ],
         ),
       ),
       drawer: DrawerMenu(scafoldKey: scafoldKey, userId: "pepe"),

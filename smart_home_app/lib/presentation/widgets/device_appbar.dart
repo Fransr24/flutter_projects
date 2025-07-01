@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_home_app/presentation/screens/light_screen.dart';
 
@@ -49,7 +50,13 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
   Future<void> _fetchDevices() async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance.collection(collectionName).get();
+          await FirebaseFirestore.instance
+              .collection(collectionName)
+              .where(
+                'creador',
+                isEqualTo: FirebaseAuth.instance.currentUser!.uid,
+              )
+              .get();
 
       final deviceNames = snapshot.docs.map((doc) => doc.id).toList();
 
@@ -71,6 +78,8 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
   Widget build(BuildContext context) {
     final TextEditingController controller = TextEditingController();
 
+    final String deviceName = _selectedDevice.split('|').first;
+
     return AppBar(
       title: Row(
         children: [
@@ -82,14 +91,17 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                 isExpanded: true,
                 items:
                     _availableDevices.map((dev) {
-                      return DropdownMenuItem(value: dev, child: Text(dev));
+                      return DropdownMenuItem(
+                        value: dev,
+                        child: Text(dev.split('|').first),
+                      );
                     }).toList(),
                 onChanged: (newValue) {
                   if (newValue != null) {
                     setState(() {
                       _selectedDevice = newValue;
                     });
-                    widget.onDevChanged(newValue);
+                    widget.onDevChanged(_selectedDevice);
                   }
                 },
               ),
@@ -103,7 +115,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                 context: context,
                 builder:
                     (context) => AlertDialog(
-                      title: Text("Eliminando modulo $_selectedDevice"),
+                      title: Text("Eliminando modulo $deviceName"),
                       content: Text(
                         "¿Estas seguro que quieres eliminar este elemento?",
                       ),
@@ -128,9 +140,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                             }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  "Modulo $_selectedDevice eliminado",
-                                ),
+                                content: Text("Modulo $deviceName eliminado"),
                               ),
                             );
                             await _fetchDevices();
@@ -157,6 +167,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                           'encendido': false,
                           'horario': "--:--",
                           'temporizador': "00",
+                          'creador': FirebaseAuth.instance.currentUser!.uid,
                         }
                         : {
                           'encendido': false,
@@ -165,6 +176,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                           'fan': "-",
                           'mode': "-",
                           'temporizador': "00",
+                          'creador': FirebaseAuth.instance.currentUser!.uid,
                         };
 
                 await showDialog(
@@ -198,21 +210,43 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                             ),
                             ElevatedButton(
                               onPressed: () async {
-                                await FirebaseFirestore.instance
-                                    .collection(collectionName)
-                                    .doc(controller.text)
-                                    .set(defaultData);
+                                final String docName =
+                                    "${controller.text}|${FirebaseAuth.instance.currentUser!.uid}";
+                                try {
+                                  final docRef = FirebaseFirestore.instance
+                                      .collection(collectionName)
+                                      .doc(docName);
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Modulo ${controller.text} agregado",
+                                  final docSnapshot = await docRef.get();
+
+                                  if (docSnapshot.exists) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "El módulo ya existe con ese nombre.",
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    await docRef.set(defaultData);
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "Módulo ${controller.text} agregado",
+                                        ),
+                                      ),
+                                    );
+                                    await _fetchDevices();
+                                    Navigator.of(context).pop();
+                                  }
+                                } catch (error) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Error al crear modulo"),
                                     ),
-                                  ),
-                                );
-
-                                await _fetchDevices();
-                                Navigator.of(context).pop();
+                                  );
+                                }
                               },
                               child: const Text('Guardar'),
                             ),

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
 
@@ -24,7 +25,14 @@ class _LightScreenState extends State<LightScreen> {
   Future<void> _fetchLight() async {
     try {
       final snapshot =
-          await FirebaseFirestore.instance.collection("luces").limit(1).get();
+          await FirebaseFirestore.instance
+              .collection("luces")
+              .where(
+                'creador',
+                isEqualTo: FirebaseAuth.instance.currentUser!.uid,
+              )
+              .limit(1)
+              .get();
 
       if (snapshot.docs.isNotEmpty) {
         setState(() {
