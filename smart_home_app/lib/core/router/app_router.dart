@@ -3,13 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/presentation/screens/air_conditioning_screen.dart';
+import 'package:smart_home_app/presentation/screens/consumption_screen.dart';
 import 'package:smart_home_app/presentation/screens/home_screen.dart';
 import 'package:smart_home_app/presentation/screens/light_screen.dart';
 import 'package:smart_home_app/presentation/screens/login_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/presentation/screens/my_profile_screen.dart';
 
 /// provider para escuchar el estado de autenticación
@@ -60,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: "/myprofile",
         builder: (context, state) => MyProfileScreen(),
+      ),
+      GoRoute(
+        path: "/consumption",
+        builder: (context, state) => ConsumptionScreen(),
       ),
     ],
   );

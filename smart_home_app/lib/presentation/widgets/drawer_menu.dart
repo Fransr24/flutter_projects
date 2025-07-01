@@ -35,8 +35,6 @@ class _DrawerMenuState extends State<DrawerMenu> {
                       onPressed: () async {
                         Navigator.of(context).pop();
                         await FirebaseAuth.instance.signOut();
-
-                        context.push("/login");
                       },
                       child: Text("Si"),
                     ),

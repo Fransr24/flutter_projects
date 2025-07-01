@@ -48,7 +48,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    TextEditingController inputProfilePicture = TextEditingController();
     File? _selectedImage;
 
     return Scaffold(
@@ -300,7 +299,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                           ],
                         ),
                   );
-                  // Si el usuario apreto en confirm, elimino la cuenta
                   if (confirm == true) {
                     await user.delete();
                     Navigator.of(context).pushReplacementNamed("/login");

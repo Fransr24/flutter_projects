@@ -5,10 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/domain/models/device_button.dart';
 import 'package:smart_home_app/presentation/widgets/drawer_menu.dart';
 
-// TODO: Grafico
-// TODO: cambiar la imagen del login
-// TODO: agregar campo temperatura ambiente (no es lo mismo que temperatura ya q este ultimo es del aire acondicionado)
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -69,7 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
     var temperature = "-";
 
     return Scaffold(
-      appBar: AppBar(title: Text("Bienvenido ${user!.displayName}")),
+      appBar: AppBar(
+        title: Text("Bienvenido ${user?.displayName ?? 'Usuario'}"),
+      ),
       body: SafeArea(
         child: Column(
           children: [

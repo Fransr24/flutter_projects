@@ -23,7 +23,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: AspectRatio(
             aspectRatio: 1,
             child: Image.network(
-              "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Brazilian_Football_Confederation_logo.svg/150px-Brazilian_Football_Confederation_logo.svg.png",
+              "https://media.istockphoto.com/id/172376898/es/foto/control-de-quemaduras.jpg?s=612x612&w=0&k=20&c=ueLoferYqki03C9KsUnWhW5eGyXBJVmLO8_NpaJ6E0w=",
             ),
           ),
         );
@@ -35,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: AspectRatio(
             aspectRatio: 1,
             child: Image.network(
-              "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Brazilian_Football_Confederation_logo.svg/150px-Brazilian_Football_Confederation_logo.svg.png",
+              "https://media.istockphoto.com/id/172376898/es/foto/control-de-quemaduras.jpg?s=612x612&w=0&k=20&c=ueLoferYqki03C9KsUnWhW5eGyXBJVmLO8_NpaJ6E0w=",
             ),
           ),
         );
