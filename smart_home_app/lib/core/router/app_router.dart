@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:smart_home_app/presentation/screens/my_profile_screen.dart';
 
 /// provider para escuchar el estado de autenticación
 final authProvider = StreamProvider<User?>((ref) {
@@ -55,6 +56,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: "/air",
         builder: (context, state) => AirConditioningScreen(),
+      ),
+      GoRoute(
+        path: "/myprofile",
+        builder: (context, state) => MyProfileScreen(),
       ),
     ],
   );

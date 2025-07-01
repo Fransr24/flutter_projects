@@ -18,7 +18,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
     return NavigationDrawer(
       onDestinationSelected: (value) {
         setState(() {});
-        if (menuItems[value].title == 'Log out') {
+        if (menuItems[value].title == 'Cerrar sesion') {
           print(menuItems[value].title);
           showDialog(
             context: context,
@@ -47,7 +47,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
           final link = menuItems[value].link;
           Navigator.of(context).pop();
 
-          if (link == "/profile" || link == "/home") {
+          if (link == "/myprofile" || link == "/home") {
             context.push(link, extra: widget.userId);
           } else {
             context.push(link);

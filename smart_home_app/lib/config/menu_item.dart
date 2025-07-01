@@ -10,6 +10,6 @@ class MenuItem {
 
 const List<MenuItem> menuItems = [
   MenuItem(title: 'Home', icon: Icons.house, link: '/home'),
-  MenuItem(title: 'Profile', icon: Icons.person, link: '/profile'),
-  MenuItem(title: 'Log out', icon: Icons.logout, link: '/login'),
+  MenuItem(title: 'Perfil', icon: Icons.person, link: '/myprofile'),
+  MenuItem(title: 'Cerrar sesion', icon: Icons.logout, link: '/login'),
 ];

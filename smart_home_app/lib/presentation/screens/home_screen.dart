@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/domain/models/device_button.dart';
 import 'package:smart_home_app/presentation/widgets/drawer_menu.dart';
 
-// TODO: Storage, pantalla de perfil
 // TODO: Grafico
 // TODO: cambiar la imagen del login
 // TODO: agregar campo temperatura ambiente (no es lo mismo que temperatura ya q este ultimo es del aire acondicionado)
@@ -102,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return Column(
                   children: [
                     Text(
-                      "Temperatura actual en la habitacion principal",
+                      "Temperatura actual en la habitacion",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
@@ -157,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(height: 12),
                               Text(
                                 device.label,
+                                textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
