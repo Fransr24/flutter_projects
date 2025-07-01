@@ -199,7 +199,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                user?.displayName ?? "Sin nombre",
+                user.displayName ?? "Sin nombre",
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -207,14 +207,12 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                user?.email ?? "Sin email",
+                user.email ?? "Sin email",
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 4),
               Text(
-                user!.emailVerified
-                    ? "Email verificado"
-                    : "Email no verificado",
+                user.emailVerified ? "Email verificado" : "Email no verificado",
                 style: TextStyle(
                   fontSize: 14,
                   color: user.emailVerified ? Colors.green : Colors.red,
