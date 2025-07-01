@@ -1,22 +1,45 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-Future<void> showEditAirConfigModal(BuildContext context) async {
+Future<void> showEditAirConfigModal(
+  BuildContext context,
+  String selectedDevice,
+  String temp,
+  String fan,
+  bool swing,
+  String mode,
+) async {
   await showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (context) {
-      return const _EditAirConfigModalBody();
+      return _EditAirConfigModalBody(selectedDevice, temp, fan, swing, mode);
     },
   );
 }
 
 class _EditAirConfigModalBody extends StatelessWidget {
-  const _EditAirConfigModalBody();
+  String selectedDevice;
+  String temp;
+  String fan;
+  bool swing;
+  String mode;
+  _EditAirConfigModalBody(
+    this.selectedDevice,
+    this.temp,
+    this.fan,
+    this.swing,
+    this.mode,
+  );
+
+  final TextEditingController temperatureController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    temperatureController.text = temp;
+
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -29,49 +52,69 @@ class _EditAirConfigModalBody extends StatelessWidget {
           const SizedBox(height: 16),
           TextFormField(
             decoration: const InputDecoration(labelText: "Temperatura (°C)"),
-            initialValue: "24",
+            controller: temperatureController,
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: "FAN"),
-            value: "III",
+            value: fan,
             items:
-                ["I", "II", "III"]
+                ["-", "I", "II", "III"]
                     .map(
                       (val) => DropdownMenuItem(value: val, child: Text(val)),
                     )
                     .toList(),
-            onChanged: (_) {},
+            onChanged: (val) {
+              fan = val!;
+            },
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: "Swing"),
-            value: "ON",
+            value: swing ? "ON" : "OFF",
             items:
-                ["ON", "OFF"]
+                ["-", "ON", "OFF"]
                     .map(
                       (val) => DropdownMenuItem(value: val, child: Text(val)),
                     )
                     .toList(),
-            onChanged: (_) {},
+            onChanged: (val) {
+              swing = val == "ON";
+            },
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: "Modo"),
-            value: "Frío",
+            value: mode,
             items:
-                ["Frío", "Calor", "Auto"]
+                ["-", "Frío", "Calor", "Auto"]
                     .map(
                       (val) => DropdownMenuItem(value: val, child: Text(val)),
                     )
                     .toList(),
-            onChanged: (_) {},
+            onChanged: (val) {
+              mode = val!;
+            },
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: () {
-              // TODO: guardar cambios
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance
+                    .collection('aire')
+                    .doc(selectedDevice)
+                    .update({
+                      'temperatura': temperatureController.text,
+                      'fan': fan,
+                      "swing": swing,
+                      "mode": mode,
+                    });
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Error seteando los datos")),
+                );
+              }
               Navigator.pop(context);
             },
             icon: const Icon(Icons.save),

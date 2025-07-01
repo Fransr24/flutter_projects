@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/config/menu_item.dart';
@@ -17,22 +18,25 @@ class _DrawerMenuState extends State<DrawerMenu> {
     return NavigationDrawer(
       onDestinationSelected: (value) {
         setState(() {});
-        if (menuItems[value].title == 'Cerrar sesión') {
+        if (menuItems[value].title == 'Log out') {
+          print(menuItems[value].title);
           showDialog(
             context: context,
             builder:
                 (context) => AlertDialog(
                   title: Text("Cerrar sesión"),
-                  content: Text("Estas seguro que quieres cerrar sesión"),
+                  content: Text("¿Estas seguro que quieres cerrar sesión?"),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text("No"),
                     ),
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.of(context).pop();
-                        context.push(menuItems[value].link);
+                        await FirebaseAuth.instance.signOut();
+
+                        context.push("/login");
                       },
                       child: Text("Si"),
                     ),

@@ -42,7 +42,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
       case DeviceType.luces:
         return 'luces';
       case DeviceType.aire:
-        return 'aires';
+        return 'aire';
     }
   }
 
@@ -52,7 +52,6 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
           await FirebaseFirestore.instance.collection(collectionName).get();
 
       final deviceNames = snapshot.docs.map((doc) => doc.id).toList();
-      print(deviceNames);
 
       setState(() {
         _availableDevices = deviceNames;
@@ -104,7 +103,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                 context: context,
                 builder:
                     (context) => AlertDialog(
-                      title: Text("Eliminando Luces de $_selectedDevice"),
+                      title: Text("Eliminando modulo $_selectedDevice"),
                       content: Text(
                         "¿Estas seguro que quieres eliminar este elemento?",
                       ),
@@ -121,10 +120,16 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                                   .doc(_selectedDevice)
                                   .delete();
                             }
+                            if (_type == DeviceType.aire) {
+                              await FirebaseFirestore.instance
+                                  .collection("aire")
+                                  .doc(_selectedDevice)
+                                  .delete();
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "Modulo ${_selectedDevice} eliminado",
+                                  "Modulo $_selectedDevice eliminado",
                                 ),
                               ),
                             );
@@ -143,14 +148,36 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
             icon: const Icon(Icons.add),
             tooltip: 'Agregar modulo',
             onPressed: () async {
-              if (_type == DeviceType.luces) {
+              if (_type == DeviceType.luces || _type == DeviceType.aire) {
+                final collectionName =
+                    _type == DeviceType.luces ? "luces" : "aire";
+                final defaultData =
+                    _type == DeviceType.luces
+                        ? {
+                          'encendido': false,
+                          'horario': "--:--",
+                          'temporizador': "00",
+                        }
+                        : {
+                          'encendido': false,
+                          'swing': false,
+                          'temperatura': "00",
+                          'fan': "-",
+                          'mode': "-",
+                          'temporizador': "00",
+                        };
+
                 await showDialog(
                   context: context,
                   builder: (context) {
                     return StatefulBuilder(
                       builder: (context, setState) {
                         return AlertDialog(
-                          title: const Text('Agregar nuevo modulo de luces'),
+                          title: Text(
+                            _type == DeviceType.luces
+                                ? 'Agregar nuevo modulo de luces'
+                                : 'Agregar nuevo modulo de aire acondicionado',
+                          ),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -158,8 +185,7 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                                 controller: controller,
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
-                                  labelText:
-                                      'Inserte el nombre de las nuevas luces',
+                                  labelText: 'Inserte el nombre del modulo',
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -173,13 +199,10 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                             ElevatedButton(
                               onPressed: () async {
                                 await FirebaseFirestore.instance
-                                    .collection("luces")
+                                    .collection(collectionName)
                                     .doc(controller.text)
-                                    .set({
-                                      'encendido': false,
-                                      'horario': "--:--",
-                                      'temporizador': "00",
-                                    });
+                                    .set(defaultData);
+
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -187,8 +210,8 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                                     ),
                                   ),
                                 );
-                                await _fetchDevices();
 
+                                await _fetchDevices();
                                 Navigator.of(context).pop();
                               },
                               child: const Text('Guardar'),

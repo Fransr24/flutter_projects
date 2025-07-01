@@ -11,12 +11,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 
-/// Proveedor para escuchar el estado de autenticación
+/// provider para escuchar el estado de autenticación
 final authProvider = StreamProvider<User?>((ref) {
   return FirebaseAuth.instance.authStateChanges();
 });
 
-/// Refresca el router cuando cambia el estado del usuario
+/// esto es para refrescar el router cuando cambia el estado del usuario
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
@@ -35,7 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final isLoggedIn = FirebaseAuth.instance.currentUser != null;
 
   return GoRouter(
-    initialLocation: isLoggedIn ? '/home' : '/login', // <-- ESTO ES CLAVE
+    initialLocation: isLoggedIn ? '/home' : '/login',
 
     refreshListenable: GoRouterRefreshStream(
       FirebaseAuth.instance.authStateChanges(),
