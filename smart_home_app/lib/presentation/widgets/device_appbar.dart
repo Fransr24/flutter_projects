@@ -194,7 +194,6 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                             children: [
                               TextField(
                                 controller: controller,
-                                keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                   labelText: 'Inserte el nombre del modulo',
                                   border: OutlineInputBorder(),

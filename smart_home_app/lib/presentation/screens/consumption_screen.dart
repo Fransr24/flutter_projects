@@ -85,6 +85,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                 ),
                 TextField(
                   controller: potenciaController,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: "Potencia consumida en kWh",
                   ),
@@ -105,6 +106,14 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("Ingresar fecha y potencia consumida"),
+                      ),
+                    );
+                  }
+                  final potuint = double.tryParse(potencia);
+                  if (potuint == null || potuint <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Ingresar solamente numeros positivos"),
                       ),
                     );
                   }

@@ -10,9 +10,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
     return SignInScreen(

@@ -20,7 +20,7 @@ Future<void> showEditAirConfigModal(
   );
 }
 
-class _EditAirConfigModalBody extends StatelessWidget {
+class _EditAirConfigModalBody extends StatefulWidget {
   String selectedDevice;
   String temp;
   String fan;
@@ -34,12 +34,30 @@ class _EditAirConfigModalBody extends StatelessWidget {
     this.mode,
   );
 
-  final TextEditingController temperatureController = TextEditingController();
+  @override
+  State<_EditAirConfigModalBody> createState() =>
+      _EditAirConfigModalBodyState();
+}
+
+class _EditAirConfigModalBodyState extends State<_EditAirConfigModalBody> {
+  late TextEditingController temperatureController = TextEditingController();
+  late String fan;
+  late String temp;
+  late bool swing;
+  late String mode;
+
+  @override
+  void initState() {
+    super.initState();
+    fan = widget.fan;
+    swing = widget.swing;
+    mode = widget.mode;
+    temp = widget.temp;
+    temperatureController.text = temp;
+  }
 
   @override
   Widget build(BuildContext context) {
-    temperatureController.text = temp;
-
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -103,7 +121,7 @@ class _EditAirConfigModalBody extends StatelessWidget {
               try {
                 await FirebaseFirestore.instance
                     .collection('aire')
-                    .doc(selectedDevice)
+                    .doc(widget.selectedDevice)
                     .update({
                       'temperatura': temperatureController.text,
                       'fan': fan,

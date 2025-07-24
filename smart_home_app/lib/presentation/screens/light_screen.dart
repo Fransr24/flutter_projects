@@ -328,7 +328,7 @@ class _LightScreenState extends State<LightScreen> {
                                   final int? value = int.tryParse(
                                     controller.text,
                                   );
-                                  if (value != null) {
+                                  if (value != null && value > 0) {
                                     final String tiempoTemp =
                                         controller.text +
                                         " ".toString() +
@@ -346,6 +346,14 @@ class _LightScreenState extends State<LightScreen> {
                                       ),
                                     );
                                     Navigator.of(context).pop();
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Ingresar solamente numeros positivos",
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                                 child: const Text('Guardar'),

@@ -197,22 +197,37 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                               flex: 2,
                               child: ElevatedButton.icon(
                                 onPressed: () async {
-                                  try {
-                                    await FirebaseFirestore.instance
-                                        .collection('aire')
-                                        .doc(selectedAirConditioning)
-                                        .update({
-                                          'temperatura':
-                                              temperatureController.text,
-                                        });
-                                  } catch (e) {
+                                  final tempuint = double.tryParse(
+                                    temperatureController.text,
+                                  );
+                                  if (tempuint == null || tempuint <= 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          "Error seteando temperatura",
+                                          "Ingresar solamente datos validos",
                                         ),
                                       ),
                                     );
+                                  } else {
+                                    try {
+                                      await FirebaseFirestore.instance
+                                          .collection('aire')
+                                          .doc(selectedAirConditioning)
+                                          .update({
+                                            'temperatura':
+                                                temperatureController.text,
+                                          });
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Error seteando temperatura",
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   }
                                 },
                                 icon: const Icon(Icons.thermostat),
@@ -316,7 +331,22 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                             onPressed: () {
                                               final tiempoIngresado =
                                                   controller.text;
-                                              if (tiempoIngresado.isNotEmpty) {
+                                              final tiempouint =
+                                                  double.tryParse(
+                                                    tiempoIngresado,
+                                                  );
+                                              if (tiempouint == null ||
+                                                  tiempouint <= 0) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      "Ingresar solamente datos validos",
+                                                    ),
+                                                  ),
+                                                );
+                                              } else {
                                                 Navigator.of(context).pop(
                                                   '$tiempoIngresado $selectedUnit',
                                                 );
