@@ -1,25 +1,41 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:smart_home_app/core/providers.dart';
 import 'package:smart_home_app/domain/models/device_button.dart';
 import 'package:smart_home_app/presentation/widgets/drawer_menu.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndAskForDisplayName();
+      _initialize();
+    });
+  }
+
+  Future<void> _initialize() async {
+    await _checkAndAskForDisplayName();
+
+    bool connected = false;
+    while (!connected) {
+      connected = await findAndSaveRouterId(context, ref);
+    }
+
+    setState(() {
+      isLoading = false;
     });
   }
 
@@ -64,6 +80,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     var temperature = "-";
 
+    if (isLoading) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    try {
+      final user = FirebaseAuth.instance.currentUser!.uid;
+    } catch (error) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final redId = ref.watch(redIdProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Bienvenido ${user?.displayName ?? 'Usuario'}"),
@@ -76,10 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
               stream:
                   FirebaseFirestore.instance
                       .collection("aire")
-                      .where(
-                        'creador',
-                        isEqualTo: FirebaseAuth.instance.currentUser!.uid,
-                      )
+                      .where('red', isEqualTo: redId)
                       .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -170,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      drawer: DrawerMenu(scafoldKey: scafoldKey, userId: "pepe"),
+      drawer: DrawerMenu(scafoldKey: scafoldKey),
     );
   }
 }

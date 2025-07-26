@@ -5,8 +5,7 @@ import 'package:smart_home_app/config/menu_item.dart';
 
 class DrawerMenu extends StatefulWidget {
   final GlobalKey<ScaffoldState> scafoldKey;
-  final String userId;
-  const DrawerMenu({super.key, required this.scafoldKey, required this.userId});
+  const DrawerMenu({super.key, required this.scafoldKey});
 
   @override
   State<DrawerMenu> createState() => _DrawerMenuState();
@@ -19,7 +18,6 @@ class _DrawerMenuState extends State<DrawerMenu> {
       onDestinationSelected: (value) {
         setState(() {});
         if (menuItems[value].title == 'Cerrar sesion') {
-          print(menuItems[value].title);
           showDialog(
             context: context,
             builder:
@@ -45,11 +43,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
           final link = menuItems[value].link;
           Navigator.of(context).pop();
 
-          if (link == "/myprofile" || link == "/home") {
-            context.push(link, extra: widget.userId);
-          } else {
-            context.push(link);
-          }
+          context.push(link);
           widget.scafoldKey.currentState?.closeDrawer();
         }
       },

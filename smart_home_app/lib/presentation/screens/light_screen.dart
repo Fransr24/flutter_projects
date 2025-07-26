@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smart_home_app/core/providers.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
 
-class LightScreen extends StatefulWidget {
+class LightScreen extends ConsumerStatefulWidget {
   const LightScreen({super.key});
 
   @override
-  State<LightScreen> createState() => _LightScreenState();
+  ConsumerState<LightScreen> createState() => _LightScreenState();
 }
 
-class _LightScreenState extends State<LightScreen> {
+class _LightScreenState extends ConsumerState<LightScreen> {
   late String selectedLight = "";
   late bool isLightOn;
   String? selectedTime;
@@ -18,19 +20,19 @@ class _LightScreenState extends State<LightScreen> {
   bool isLoading = true;
 
   void initState() {
-    _fetchLight();
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchLight(ref);
+    });
   }
 
-  Future<void> _fetchLight() async {
+  Future<void> _fetchLight(WidgetRef ref) async {
+    final redId = ref.watch(redIdProvider);
     try {
       final snapshot =
           await FirebaseFirestore.instance
               .collection("luces")
-              .where(
-                'creador',
-                isEqualTo: FirebaseAuth.instance.currentUser!.uid,
-              )
+              .where('red', isEqualTo: redId)
               .limit(1)
               .get();
 

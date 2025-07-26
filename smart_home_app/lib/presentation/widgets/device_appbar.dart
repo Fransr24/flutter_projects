@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smart_home_app/core/providers.dart';
 
 enum DeviceType { luces, aire }
 
-class DeviceAppBar extends StatefulWidget implements PreferredSizeWidget {
+class DeviceAppBar extends ConsumerStatefulWidget
+    implements PreferredSizeWidget {
   final String selectedDevice;
   final DeviceType type;
   final void Function(String) onDevChanged;
@@ -17,13 +20,13 @@ class DeviceAppBar extends StatefulWidget implements PreferredSizeWidget {
   });
 
   @override
-  State<DeviceAppBar> createState() => _DeviceAppBarState();
+  ConsumerState<DeviceAppBar> createState() => _DeviceAppBarState();
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-class _DeviceAppBarState extends State<DeviceAppBar> {
+class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
   late String _selectedDevice = "";
   late DeviceType _type;
   late List<String> _availableDevices = [];
@@ -32,9 +35,11 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
   @override
   void initState() {
     super.initState();
-    _type = widget.type;
-    collectionName = _getCollectionName(widget.type);
-    _fetchDevices();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _type = widget.type;
+      collectionName = _getCollectionName(widget.type);
+      _fetchDevices();
+    });
   }
 
   String _getCollectionName(DeviceType type) {
@@ -47,35 +52,39 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
   }
 
   Future<void> _fetchDevices() async {
+    final redId = ref.watch(redIdProvider);
     try {
       final snapshot =
           await FirebaseFirestore.instance
               .collection(collectionName)
-              .where(
-                'creador',
-                isEqualTo: FirebaseAuth.instance.currentUser!.uid,
-              )
+              .where('red', isEqualTo: redId)
               .get();
 
-      final deviceNames = snapshot.docs.map((doc) => doc.id).toList();
+      final deviceIds = snapshot.docs.map((doc) => doc.id).toList();
 
       setState(() {
-        _availableDevices = deviceNames;
+        _availableDevices = deviceIds;
         _selectedDevice =
-            deviceNames.isNotEmpty ? deviceNames.first : 'Sin dispositivos';
+            deviceIds.isNotEmpty ? deviceIds.first : 'Sin dispositivos';
       });
 
       widget.onDevChanged(_selectedDevice);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error actualizando dispositivo")));
+      showAlertDialog(
+        context: context,
+        title: "Error",
+        message: "Error actualizando dispositivo",
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController controller = TextEditingController();
+    final TextEditingController controllerId = TextEditingController();
+    final TextEditingController controllerName = TextEditingController();
+    final TextEditingController controllerDescription = TextEditingController();
+
+    final redId = ref.watch(redIdProvider);
 
     final String deviceName = _selectedDevice.split('|').first;
 
@@ -158,26 +167,6 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
             tooltip: 'Agregar modulo',
             onPressed: () async {
               if (_type == DeviceType.luces || _type == DeviceType.aire) {
-                final collectionName =
-                    _type == DeviceType.luces ? "luces" : "aire";
-                final defaultData =
-                    _type == DeviceType.luces
-                        ? {
-                          'encendido': false,
-                          'horario': "--:--",
-                          'temporizador': "00",
-                          'creador': FirebaseAuth.instance.currentUser!.uid,
-                        }
-                        : {
-                          'encendido': false,
-                          'swing': false,
-                          'temperatura': "00",
-                          'fan': "-",
-                          'mode': "-",
-                          'temporizador': "00",
-                          'creador': FirebaseAuth.instance.currentUser!.uid,
-                        };
-
                 await showDialog(
                   context: context,
                   builder: (context) {
@@ -193,9 +182,24 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               TextField(
-                                controller: controller,
+                                controller: controllerId,
+                                decoration: const InputDecoration(
+                                  labelText: 'Inserte el Id del modulo',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              TextField(
+                                controller: controllerName,
                                 decoration: const InputDecoration(
                                   labelText: 'Inserte el nombre del modulo',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              TextField(
+                                controller: controllerDescription,
+                                decoration: const InputDecoration(
+                                  labelText:
+                                      'Inserte una descripcion del modulo',
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -208,40 +212,88 @@ class _DeviceAppBarState extends State<DeviceAppBar> {
                             ),
                             ElevatedButton(
                               onPressed: () async {
-                                final String docName =
-                                    "${controller.text}|${FirebaseAuth.instance.currentUser!.uid}";
+                                final name = controllerName.text;
+                                final id = controllerId.text;
+                                final description = controllerDescription.text;
+
+                                final collectionName =
+                                    _type == DeviceType.luces
+                                        ? "luces"
+                                        : "aire";
+                                final defaultData =
+                                    _type == DeviceType.luces
+                                        ? {
+                                          'red': redId,
+                                          'emparejado': true,
+                                          'nombre': name,
+                                          'descripcion': description,
+                                          'encendido': false,
+                                          'horario': "--:--",
+                                          'temporizador': "00",
+                                        }
+                                        : {
+                                          'red': redId,
+                                          'emparejado': true,
+                                          'nombre': name,
+                                          'descripcion': description,
+                                          'encendido': false,
+                                          'swing': false,
+                                          'temperatura': "00",
+                                          'fan': "-",
+                                          'mode': "-",
+                                          'temporizador': "00",
+                                        };
+
                                 try {
                                   final docRef = FirebaseFirestore.instance
                                       .collection(collectionName)
-                                      .doc(docName);
+                                      .doc(id);
 
                                   final docSnapshot = await docRef.get();
 
                                   if (docSnapshot.exists) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          "El módulo ya existe con ese nombre.",
-                                        ),
-                                      ),
+                                    showAlertDialog(
+                                      context: context,
+                                      title: "Error",
+                                      message:
+                                          "El módulo ya existe y se encuentra registrado",
                                     );
                                   } else {
-                                    await docRef.set(defaultData);
+                                    final data =
+                                        await FirebaseFirestore.instance
+                                            .collection(collectionName)
+                                            .where('red', isEqualTo: redId)
+                                            .where('nombre', isEqualTo: name)
+                                            .get();
+                                    if (data.docs.isNotEmpty) {
+                                      showAlertDialog(
+                                        context: context,
+                                        title: "Error",
+                                        message:
+                                            "Ya existe un dispositivo con ese nombre, prueba uno distinto",
+                                      );
+                                    } else {
+                                      await docRef.set(defaultData);
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          "Módulo ${controller.text} agregado",
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "Módulo ${controllerName.text} agregado",
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                    await _fetchDevices();
-                                    Navigator.of(context).pop();
+                                      );
+                                      await _fetchDevices();
+                                      Navigator.of(context).pop();
+                                    }
                                   }
                                 } catch (error) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text("Error al crear modulo"),
+                                      content: Text(
+                                        "Error al emparejar dispositivo",
+                                      ),
                                     ),
                                   );
                                 }
