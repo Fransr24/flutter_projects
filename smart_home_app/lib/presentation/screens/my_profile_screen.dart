@@ -22,22 +22,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
 
     if (pickedFile != null && user != null) {
       final File imageFile = File(pickedFile.path);
-
-      final imgRef = FirebaseStorage.instance
-          .ref('usuarios')
-          .child(user.uid)
-          .child('fotoperfil');
-
-      try {
-        await imgRef.putFile(imageFile);
-
-        final downloadUrl = await imgRef.getDownloadURL();
-        print("Imagen subida. URL: $downloadUrl");
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Error al subir imagen")));
-      }
+      await user.updatePhotoURL(imageFile.path);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Por favor selecciona una imagen")),
@@ -153,21 +138,8 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                                           ElevatedButton.icon(
                                             onPressed: () async {
                                               if (_selectedImage != null) {
-                                                final imgRef = FirebaseStorage
-                                                    .instance
-                                                    .ref('usuarios')
-                                                    .child(user.uid)
-                                                    .child('fotoperfil');
-
-                                                await imgRef.putFile(
-                                                  _selectedImage!,
-                                                );
-                                                final downloadUrl =
-                                                    await imgRef
-                                                        .getDownloadURL();
-
                                                 await user.updatePhotoURL(
-                                                  downloadUrl,
+                                                  _selectedImage!.path,
                                                 );
                                                 await user.reload();
 

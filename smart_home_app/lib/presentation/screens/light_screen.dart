@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_home_app/core/providers.dart';
+import 'package:smart_home_app/core/utils/utils.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
 
 class LightScreen extends ConsumerStatefulWidget {
@@ -30,16 +32,19 @@ class _LightScreenState extends ConsumerState<LightScreen> {
     final redId = ref.watch(redIdProvider);
     try {
       final snapshot =
-          await FirebaseFirestore.instance
-              .collection("luces")
-              .where('red', isEqualTo: redId)
-              .limit(1)
+          await FirebaseDatabase.instance
+              .ref("lights")
+              .orderByChild("Network")
+              .equalTo(redId)
               .get();
 
-      if (snapshot.docs.isNotEmpty) {
+      if (snapshot.exists && snapshot.children.isNotEmpty) {
+        final firstChild = snapshot.children.first;
+
         setState(() {
-          selectedLight = snapshot.docs.first.id;
-          isLightOn = snapshot.docs.first.data()['encendido'];
+          selectedLight = firstChild.key!;
+          final data = firstChild.value as Map<dynamic, dynamic>;
+          isLightOn = data['On'] ?? false;
           isLoading = false;
         });
       } else {
@@ -53,10 +58,12 @@ class _LightScreenState extends ConsumerState<LightScreen> {
         selectedLight = 'Error';
         isLoading = false;
       });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error obteniendo luces: $e")));
+      await showAlertDialog(
+        context: context,
+        title: 'Error',
+        message:
+            'Error obteniendo la informacion de las luces desde el servidor',
+      );
     }
   }
 
@@ -84,19 +91,20 @@ class _LightScreenState extends ConsumerState<LightScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 16),
-              StreamBuilder(
+              StreamBuilder<DatabaseEvent>(
                 stream:
-                    FirebaseFirestore.instance
-                        .collection("luces")
-                        .doc(selectedLight)
-                        .snapshots(),
+                    FirebaseDatabase.instance
+                        .ref("lights/$selectedLight")
+                        .onValue,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    final data = snapshot.data!.data()!;
-                    final isLightOn = data['encendido'] ?? false;
+                  if (snapshot.hasData &&
+                      snapshot.data!.snapshot.value != null) {
+                    final data =
+                        snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                    final isLightOn = data['On'] ?? false;
 
                     final icon =
                         isLightOn ? Icons.lightbulb : Icons.lightbulb_outline;
@@ -135,19 +143,16 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                                   value: isLightOn,
                                   onChanged: (value) async {
                                     try {
-                                      await FirebaseFirestore.instance
-                                          .collection('luces')
-                                          .doc(selectedLight)
-                                          .update({'encendido': value});
+                                      await FirebaseDatabase.instance
+                                          .ref("lights/$selectedLight")
+                                          .update({'On': value});
                                     } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Error actualizando el estado del dispositivo",
-                                          ),
-                                        ),
+                                      await showAlertDialog(
+                                        context: context,
+                                        title:
+                                            'Error actualizando el estado del dispositivo',
+                                        message:
+                                            'No se pudo cambiar el estado de encendido de la luz',
                                       );
                                     }
                                   },
@@ -169,7 +174,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Programar apagado',
+                  'Programar horario de encendido',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -189,15 +194,15 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                       selectedTime = pickedTime.format(context);
                     });
                     try {
-                      await FirebaseFirestore.instance
-                          .collection('luces')
-                          .doc(selectedLight)
-                          .update({'horario': selectedTime});
+                      await FirebaseDatabase.instance
+                          .ref("lights/$selectedLight")
+                          .update({'TimeOn': selectedTime});
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Error actualizando dispositivo"),
-                        ),
+                      await showAlertDialog(
+                        context: context,
+                        title: 'Error actualizando el estado del dispositivo',
+                        message:
+                            'No se pudo cambiar el estado de programacion de encendido',
                       );
                     }
                   }
@@ -215,30 +220,30 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              StreamBuilder(
+              StreamBuilder<DatabaseEvent>(
                 stream:
-                    FirebaseFirestore.instance
-                        .collection("luces")
-                        .doc(selectedLight)
-                        .snapshots(),
+                    FirebaseDatabase.instance
+                        .ref("lights/$selectedLight")
+                        .onValue,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasData) {
-                    try {
-                      selectedTime = snapshot.data!['horario'];
-                    } catch (error) {
-                      return const Text("No data");
-                    }
+                  if (snapshot.hasData &&
+                      snapshot.data!.snapshot.value != null) {
+                    final data =
+                        snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                    final selectedTime = data['TimeOn'] ?? false;
                     return Text(
                       selectedTime != null
-                          ? 'Horario programado: ${selectedTime!}'
-                          : 'Horario programado: - : - hrs',
+                          ? 'Horario de encendido programado: ${selectedTime!} hrs'
+                          : 'Horario de encendido programado: - : - hrs',
                       style: const TextStyle(fontSize: 16, color: Colors.grey),
                     );
                   } else {
-                    return const Text("No data");
+                    return const Text(
+                      "No se pudo obtener el horario programado de encendido",
+                    );
                   }
                 },
               ),
@@ -246,21 +251,23 @@ class _LightScreenState extends ConsumerState<LightScreen> {
               TextButton.icon(
                 icon: const Icon(Icons.cancel, color: Colors.red),
                 label: const Text(
-                  'Eliminar horario',
+                  'Eliminar horario de encendido',
                   style: TextStyle(color: Colors.red),
                 ),
                 onPressed: () async {
                   setState(() {
-                    selectedTime = null;
+                    selectedTime = "*";
                   });
                   try {
-                    await FirebaseFirestore.instance
-                        .collection('luces')
-                        .doc(selectedLight)
-                        .update({'horario': "--:--"});
+                    await FirebaseDatabase.instance
+                        .ref("lights/$selectedLight")
+                        .update({'TimeOn': selectedTime});
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Error eliminando horario")),
+                    await showAlertDialog(
+                      context: context,
+                      title: 'Error actualizando el estado del dispositivo',
+                      message:
+                          'No se pudo eliminar el horario de encendido del dispositivo',
                     );
                   }
                 },
@@ -269,7 +276,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Temporizador de apagado',
+                  'Programar horario de apagado',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -278,96 +285,31 @@ class _LightScreenState extends ConsumerState<LightScreen> {
               ),
               const SizedBox(height: 8),
               ElevatedButton.icon(
-                icon: const Icon(Icons.timer_outlined),
+                icon: const Icon(Icons.schedule),
                 onPressed: () async {
-                  await showDialog(
+                  final TimeOfDay? pickedTime = await showTimePicker(
                     context: context,
-                    builder: (context) {
-                      return StatefulBuilder(
-                        builder: (context, setState) {
-                          return AlertDialog(
-                            title: const Text('Establecer temporizador'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextField(
-                                  controller: controller,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Tiempo',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                DropdownButton<String>(
-                                  value: selectedUnit,
-                                  items:
-                                      ['segundos', 'minutos']
-                                          .map(
-                                            (unit) => DropdownMenuItem(
-                                              value: unit,
-                                              child: Text(unit),
-                                            ),
-                                          )
-                                          .toList(),
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() {
-                                        selectedUnit = value;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('Cancelar'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  final int? value = int.tryParse(
-                                    controller.text,
-                                  );
-                                  if (value != null && value > 0) {
-                                    final String tiempoTemp =
-                                        controller.text +
-                                        " ".toString() +
-                                        selectedUnit;
-                                    await FirebaseFirestore.instance
-                                        .collection('luces')
-                                        .doc(selectedLight)
-                                        .update({'temporizador': tiempoTemp});
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Temporizador actualizado",
-                                        ),
-                                      ),
-                                    );
-                                    Navigator.of(context).pop();
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Ingresar solamente numeros positivos",
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: const Text('Guardar'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
+                    initialTime: TimeOfDay.now(),
                   );
+                  if (pickedTime != null) {
+                    setState(() {
+                      selectedTime = pickedTime.format(context);
+                    });
+                    try {
+                      await FirebaseDatabase.instance
+                          .ref("lights/$selectedLight")
+                          .update({'TimeOff': selectedTime});
+                    } catch (e) {
+                      await showAlertDialog(
+                        context: context,
+                        title: 'Error actualizando el estado del dispositivo',
+                        message:
+                            'No se pudo cambiar el estado de programacion de apagado',
+                      );
+                    }
+                  }
                 },
-                label: const Text('Establecer temporizador'),
+                label: const Text('Establecer horario'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     vertical: 16,
@@ -380,60 +322,58 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              StreamBuilder(
+              StreamBuilder<DatabaseEvent>(
                 stream:
-                    FirebaseFirestore.instance
-                        .collection("luces")
-                        .doc(selectedLight)
-                        .snapshots(),
+                    FirebaseDatabase.instance
+                        .ref("lights/$selectedLight")
+                        .onValue,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasData) {
-                    var temp;
-                    try {
-                      temp = snapshot.data!['temporizador'];
-                    } catch (error) {
-                      return const Text("No data");
-                    }
+                  if (snapshot.hasData &&
+                      snapshot.data!.snapshot.value != null) {
+                    final data =
+                        snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                    final selectedTime = data['TimeOff'] ?? false;
                     return Text(
-                      temp,
+                      selectedTime != null
+                          ? 'Horario de apagado programado: ${selectedTime!} hrs'
+                          : 'Horario de apagado programado: - : - hrs',
                       style: const TextStyle(fontSize: 16, color: Colors.grey),
                     );
                   } else {
-                    return const Text("No data");
+                    return const Text(
+                      "No se pudo obtener el horario programado de apagado",
+                    );
                   }
                 },
               ),
-
               const SizedBox(height: 12),
-
               TextButton.icon(
                 icon: const Icon(Icons.cancel, color: Colors.red),
                 label: const Text(
-                  'Eliminar temporizador',
+                  'Eliminar horario de apagado',
                   style: TextStyle(color: Colors.red),
                 ),
                 onPressed: () async {
                   setState(() {
-                    selectedTime = null;
+                    selectedTime = "*";
                   });
                   try {
-                    await FirebaseFirestore.instance
-                        .collection('luces')
-                        .doc(selectedLight)
-                        .update({'temporizador': "00"});
+                    await FirebaseDatabase.instance
+                        .ref("lights/$selectedLight")
+                        .update({'TimeOff': selectedTime});
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Error eliminando temporizador"),
-                      ),
+                    await showAlertDialog(
+                      context: context,
+                      title: 'Error actualizando el estado del dispositivo',
+                      message:
+                          'No se pudo eliminar el horario de apagado del dispositivo',
                     );
                   }
                 },
               ),
-              const SizedBox(height: 40),
             ],
           ),
         ),

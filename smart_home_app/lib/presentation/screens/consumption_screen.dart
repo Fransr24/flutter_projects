@@ -172,7 +172,6 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                       itemCount: consumption.length,
                       itemBuilder: (context, index) {
                         final consumo = consumption[index];
-                        print(consumo);
 
                         return ListTile(
                           title: Text("Fecha: ${consumo['fecha']}"),

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/core/providers.dart';
 import 'package:smart_home_app/domain/models/device_button.dart';
 import 'package:smart_home_app/presentation/widgets/drawer_menu.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -98,17 +99,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           children: [
             const SizedBox(height: 30),
-            StreamBuilder(
+            StreamBuilder<DatabaseEvent>(
               stream:
-                  FirebaseFirestore.instance
-                      .collection("aire")
-                      .where('red', isEqualTo: redId)
-                      .snapshots(),
+                  FirebaseDatabase.instance
+                      .ref("air")
+                      .orderByChild("Network")
+                      .equalTo(redId)
+                      .onValue,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+                if (!snapshot.hasData ||
+                    snapshot.data!.snapshot.value == null) {
                   return const Center(
                     child: Text(
                       "Crea un dispositivo de aire acondicionado para poder ver la temperatura actual",
@@ -116,19 +120,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 }
 
-                final doc = snapshot.data!.docs.first;
-                final data = doc.data();
-                temperature = data['temperatura'] ?? '--';
+                final devices =
+                    snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                final firstDevice =
+                    devices.values.first as Map<dynamic, dynamic>;
+
+                final temperature =
+                    firstDevice['SensorTemp']?.toString() ?? "--";
+
                 return Column(
                   children: [
-                    Text(
-                      "Temperatura actual en la habitacion",
+                    const Text(
+                      "Temperatura actual en la habitación",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 15),
                     Center(
                       child: Text(
                         "$temperature °C",
@@ -143,6 +152,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               },
             ),
+
+            StreamBuilder<DatabaseEvent>(
+              stream:
+                  FirebaseDatabase.instance
+                      .ref("lights")
+                      .orderByChild("Network")
+                      .equalTo(redId)
+                      .onValue,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData ||
+                    snapshot.data!.snapshot.value == null) {
+                  return const Center(
+                    child: Text("No hay luces registradas en esta red"),
+                  );
+                }
+
+                final devicesMap =
+                    snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                final deviceEntries = devicesMap.entries.toList();
+
+                return SizedBox(
+                  height: 56,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: deviceEntries
+                          .map((entry) {
+                            final id = entry.key as String;
+                            final data = entry.value as Map<dynamic, dynamic>;
+                            final isOn = (data['On']) as bool;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 1,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isOn
+                                        ? Icons.lightbulb
+                                        : Icons.lightbulb_outline,
+                                    size: 30,
+                                    color:
+                                        isOn
+                                            ? Colors.amber.shade600
+                                            : Colors.grey.shade400,
+                                  ),
+
+                                  SizedBox(
+                                    width: 72,
+                                    child: Text(
+                                      data['Name'].toString(),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
+                    ),
+                  ),
+                );
+              },
+            ),
+
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,

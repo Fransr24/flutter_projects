@@ -48,6 +48,7 @@ class DefaultFirebaseOptions {
     authDomain: 'smarthomeiot-5a1e7.firebaseapp.com',
     storageBucket: 'smarthomeiot-5a1e7.firebasestorage.app',
     measurementId: 'G-DB1EXQV5E6',
+    databaseURL: "https://smarthomeiot-5a1e7-default-rtdb.firebaseio.com",
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -85,5 +86,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'smarthomeiot-5a1e7.firebasestorage.app',
     measurementId: 'G-NJNQW7Z9CF',
   );
-
 }

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_home_app/core/utils/utils.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
 import 'package:smart_home_app/presentation/widgets/modals/eddit_air_config_modal.dart';
 
@@ -11,11 +13,10 @@ class AirConditioningScreen extends StatefulWidget {
 }
 
 class _AirConditioningScreenState extends State<AirConditioningScreen> {
-  String selectedAirConditioning = 'aire';
+  String selectedAirConditioning = 'air';
   bool isairConditioningOn = false;
-  TimeOfDay? selectedTime;
+  String? selectedTime;
   int? timerMinutes;
-  final TextEditingController temperatureController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -35,30 +36,31 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              StreamBuilder(
+              StreamBuilder<DatabaseEvent>(
                 stream:
-                    FirebaseFirestore.instance
-                        .collection("aire")
-                        .doc(selectedAirConditioning)
-                        .snapshots(),
+                    FirebaseDatabase.instance
+                        .ref("air/$selectedAirConditioning")
+                        .onValue,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    final data = snapshot.data!.data()!;
-                    final isOn = data['encendido'];
-                    final temperature = data['temperatura'];
-                    final fan = data['fan'];
-                    final mode = data['mode'];
-                    final timer = data['temporizador'];
-                    final swing = data['swing'];
+                  if (snapshot.hasData &&
+                      snapshot.data!.snapshot.value != null) {
+                    final data =
+                        snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                    final isOn = data['On'];
+                    final sensorTemp = data['SensorTemp'];
+                    final acTemp = data['ACTemp'];
+                    final fan = data['Speed'];
+                    final mode = data['Mode'];
+                    final TimeOn = data['TimeOn'];
+                    final TimeOff = data['TimeOff'];
 
                     final isOnText = isOn ? "Encendido" : "Apagado";
                     final isOnColor = isOn ? Colors.green : Colors.red;
                     final isOnBackgroundColor =
                         isOn ? Colors.green.shade50 : Colors.red.shade50;
-                    temperatureController.text = temperature;
 
                     return Column(
                       children: [
@@ -72,7 +74,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "$temperature °C",
+                          "$sensorTemp °C",
                           style: TextStyle(
                             fontSize: 48,
                             fontWeight: FontWeight.bold,
@@ -113,10 +115,9 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                   value: isOn,
                                   onChanged: (value) async {
                                     try {
-                                      await FirebaseFirestore.instance
-                                          .collection('aire')
-                                          .doc(selectedAirConditioning)
-                                          .update({'encendido': value});
+                                      await FirebaseDatabase.instance
+                                          .ref("air/$selectedAirConditioning")
+                                          .update({'On': value});
                                     } catch (e) {
                                       ScaffoldMessenger.of(
                                         context,
@@ -154,17 +155,17 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    const Spacer(),
                                     IconButton(
                                       onPressed:
-                                          () => showEditAirConfigModal(
-                                            context,
-                                            selectedAirConditioning,
-                                            temperature,
-                                            fan,
-                                            swing,
-                                            mode,
-                                          ),
+                                          () => {
+                                            showEditAirConfigModal(
+                                              context,
+                                              selectedAirConditioning,
+                                              acTemp,
+                                              fan,
+                                              mode,
+                                            ),
+                                          },
                                       icon: const Icon(Icons.edit),
                                       tooltip: "Editar configuración",
                                     ),
@@ -175,13 +176,8 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                   spacing: 12,
                                   runSpacing: 8,
                                   children: [
-                                    Chip(label: Text("T°: $temperature °C")),
+                                    Chip(label: Text("T°: $acTemp °C")),
                                     Chip(label: Text("FAN: $fan")),
-                                    Chip(
-                                      label: Text(
-                                        "Swing: ${swing ? "ON" : "OFF"}",
-                                      ),
-                                    ),
                                     Chip(label: Text("Mode: $mode")),
                                   ],
                                 ),
@@ -190,83 +186,8 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  final tempuint = double.tryParse(
-                                    temperatureController.text,
-                                  );
-                                  if (tempuint == null || tempuint <= 0) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Ingresar solamente datos validos",
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    try {
-                                      await FirebaseFirestore.instance
-                                          .collection('aire')
-                                          .doc(selectedAirConditioning)
-                                          .update({
-                                            'temperatura':
-                                                temperatureController.text,
-                                          });
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Error seteando temperatura",
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                icon: const Icon(Icons.thermostat),
-                                label: const Text("Establecer temperatura"),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(50),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 1,
-                              child: TextField(
-                                controller: temperatureController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  hintText: "°C",
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          "Esta configuracion te permite mantener el aire acondicionado encendido hasta que el ambiente alcance cierta temperatura",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                         const Text(
-                          "Prender aire acondicionado durante:",
+                          "Establecer horario de encendido del aire acondicionado:",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -278,106 +199,31 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () async {
-                                  final tiempo = await showDialog<String>(
-                                    context: context,
-                                    builder: (context) {
-                                      final TextEditingController controller =
-                                          TextEditingController();
-                                      String selectedUnit = "minutos";
-
-                                      return AlertDialog(
-                                        title: const Text("Temporizador"),
-                                        content: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            TextField(
-                                              controller: controller,
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              decoration: const InputDecoration(
-                                                labelText: "Cantidad",
-                                                border: OutlineInputBorder(),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            DropdownButton<String>(
-                                              value: selectedUnit,
-                                              items:
-                                                  ['segundos', 'minutos']
-                                                      .map(
-                                                        (unit) =>
-                                                            DropdownMenuItem(
-                                                              value: unit,
-                                                              child: Text(unit),
-                                                            ),
-                                                      )
-                                                      .toList(),
-                                              onChanged: (value) {
-                                                if (value != null) {
-                                                  selectedUnit = value;
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () =>
-                                                    Navigator.of(context).pop(),
-                                            child: const Text("Cancelar"),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              final tiempoIngresado =
-                                                  controller.text;
-                                              final tiempouint =
-                                                  double.tryParse(
-                                                    tiempoIngresado,
-                                                  );
-                                              if (tiempouint == null ||
-                                                  tiempouint <= 0) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      "Ingresar solamente datos validos",
-                                                    ),
-                                                  ),
-                                                );
-                                              } else {
-                                                Navigator.of(context).pop(
-                                                  '$tiempoIngresado $selectedUnit',
-                                                );
-                                              }
-                                            },
-                                            child: const Text("Guardar"),
-                                          ),
-                                        ],
+                                  final TimeOfDay? pickedTime =
+                                      await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
                                       );
-                                    },
-                                  );
-
-                                  if (tiempo != null) {
+                                  if (pickedTime != null) {
+                                    setState(() {
+                                      selectedTime = pickedTime.format(context);
+                                    });
                                     try {
-                                      await FirebaseFirestore.instance
-                                          .collection('aire')
-                                          .doc(selectedAirConditioning)
-                                          .update({'temporizador': tiempo});
+                                      await FirebaseDatabase.instance
+                                          .ref("air/$selectedAirConditioning")
+                                          .update({'TimeOn': selectedTime});
                                     } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Error actualizando el estado del dispositivo",
-                                          ),
-                                        ),
+                                      await showAlertDialog(
+                                        context: context,
+                                        title:
+                                            'Error actualizando el estado del dispositivo',
+                                        message:
+                                            'No se pudo cambiar el estado de programacion de encendido',
                                       );
                                     }
                                   }
                                 },
+
                                 icon: const Icon(Icons.timer),
                                 label: const Text("Seleccionar duración"),
                                 style: OutlinedButton.styleFrom(
@@ -387,20 +233,132 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                             ),
                           ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            "Temporizador activado por: $timer",
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontStyle: FontStyle.italic,
-                            ),
+                        const SizedBox(height: 12),
+
+                        StreamBuilder<DatabaseEvent>(
+                          stream:
+                              FirebaseDatabase.instance
+                                  .ref("air/$selectedAirConditioning")
+                                  .onValue,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            if (snapshot.hasData &&
+                                snapshot.data!.snapshot.value != null) {
+                              final data =
+                                  snapshot.data!.snapshot.value
+                                      as Map<dynamic, dynamic>;
+                              final selectedTime = data['TimeOn'] ?? false;
+                              return Text(
+                                selectedTime != null
+                                    ? 'Horario de encendido programado: ${selectedTime!} hrs'
+                                    : 'Horario de encendido programado: - : - hrs',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            } else {
+                              return const Text(
+                                "No se pudo obtener el horario programado de encendido",
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "Establecer horario de apagado del aire acondicionado:",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final TimeOfDay? pickedTime =
+                                      await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+                                  if (pickedTime != null) {
+                                    setState(() {
+                                      selectedTime = pickedTime.format(context);
+                                    });
+                                    try {
+                                      await FirebaseDatabase.instance
+                                          .ref("air/$selectedAirConditioning")
+                                          .update({'TimeOff': selectedTime});
+                                    } catch (e) {
+                                      await showAlertDialog(
+                                        context: context,
+                                        title:
+                                            'Error actualizando el estado del dispositivo',
+                                        message:
+                                            'No se pudo cambiar el estado de programacion de apagado',
+                                      );
+                                    }
+                                  }
+                                },
+
+                                icon: const Icon(Icons.timer),
+                                label: const Text("Seleccionar duración"),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(50),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        StreamBuilder<DatabaseEvent>(
+                          stream:
+                              FirebaseDatabase.instance
+                                  .ref("air/$selectedAirConditioning")
+                                  .onValue,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            if (snapshot.hasData &&
+                                snapshot.data!.snapshot.value != null) {
+                              final data =
+                                  snapshot.data!.snapshot.value
+                                      as Map<dynamic, dynamic>;
+                              final selectedTime = data['TimeOff'] ?? false;
+                              return Text(
+                                selectedTime != null
+                                    ? 'Horario de apagado programado: ${selectedTime!} hrs'
+                                    : 'Horario de apagado programado: - : - hrs',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            } else {
+                              return const Text(
+                                "No se pudo obtener el horario programado de apagado",
+                              );
+                            }
+                          },
                         ),
                       ],
                     );
                   } else {
-                    return const Text("No data");
+                    return const Text(
+                      "No Se encontraron datos del aire acondicionado en el servidor",
+                    );
                   }
                 },
               ),
