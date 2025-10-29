@@ -6,24 +6,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_home_app/core/utils/utils.dart';
 
 final redIdProvider = StateProvider<String?>((ref) => null);
+final devicesProvider = StateProvider<List<String>>((ref) => []);
+final isFetchingDevicesProvider = StateProvider<bool>((ref) => false);
 
 Future<bool> findAndSaveRouterId(BuildContext context, WidgetRef ref) async {
   final userId = FirebaseAuth.instance.currentUser!.uid;
+
+  final currentRed = ref.read(redIdProvider);
+  if (currentRed != null && currentRed.toString().isNotEmpty) {
+    return true;
+  }
 
   try {
     final snapshot = await FirebaseDatabase.instance.ref("network").get();
 
     if (!snapshot.exists) {
-      await showAlertDialog(
-        context: context,
-        title: 'Sin emparejamiento',
-        message: 'La red network no existe',
-      );
+      await showAlertDialog(context: context, title: 'Sin emparejamiento', message: 'La red network no existe');
       return connectUserWithRouter(context);
     }
 
     final networks = snapshot.value as Map<dynamic, dynamic>;
     String? foundRedId;
+    Map<dynamic, dynamic>? foundNode;
+
     networks.forEach((key, value) {
       if (foundRedId != null) return;
       final node = value as Map<dynamic, dynamic>;
@@ -35,6 +40,7 @@ Future<bool> findAndSaveRouterId(BuildContext context, WidgetRef ref) async {
           final slot = 'User$i';
           if (usersNode.containsKey(slot) && usersNode[slot] == userId) {
             foundRedId = key.toString();
+            foundNode = node;
             break;
           }
         }
@@ -50,13 +56,28 @@ Future<bool> findAndSaveRouterId(BuildContext context, WidgetRef ref) async {
       return connectUserWithRouter(context);
     }
 
+    // Extraigo Devices (Dev1..Dev5) y guardo en devicesProvider
+    List<String> devicesList = [];
+    if (foundNode != null && foundNode!.containsKey('Devices')) {
+      final devicesNode = foundNode!['Devices'];
+      if (devicesNode is Map) {
+        for (var i = 1; i <= 5; i++) {
+          final slot = 'Dev$i';
+          final raw = devicesNode[slot];
+          if (raw != null) {
+            final s = raw.toString().trim();
+            if (s == "-") continue;
+            if (s.isNotEmpty) devicesList.add(s);
+          }
+        }
+      }
+    }
+
+    ref.read(devicesProvider.notifier).state = devicesList;
+
     ref.read(redIdProvider.notifier).state = foundRedId!;
   } catch (e) {
-    await showAlertDialog(
-      context: context,
-      title: 'Error',
-      message: 'Ocurrió un problema al cargar los datos.',
-    );
+    await showAlertDialog(context: context, title: 'Error', message: 'Ocurrió un problema al cargar los datos.');
     return false;
   }
   return true;
@@ -70,15 +91,10 @@ Future<bool> connectUserWithRouter(BuildContext context) async {
   if (routerId == "false") return true;
 
   try {
-    final snapshot =
-        await FirebaseDatabase.instance.ref("network/$routerId").get();
+    final snapshot = await FirebaseDatabase.instance.ref("network/$routerId").get();
     // Me llevo la network cuyo id es el del cliente
     if (snapshot.exists) {
-      final networks = snapshot.value as Map<dynamic, dynamic>;
-      final redId = networks.keys.first.toString();
-
-      final usersSnap =
-          await FirebaseDatabase.instance.ref("network/$redId/Users").get();
+      final usersSnap = await FirebaseDatabase.instance.ref("network/$routerId/Users").get();
 
       Map<dynamic, dynamic> usersMap = {};
       if (usersSnap.exists && usersSnap.value != null) {
@@ -89,54 +105,36 @@ Future<bool> connectUserWithRouter(BuildContext context) async {
       for (var i = 1; i <= 4; i++) {
         final slot = 'User$i';
         if (usersMap.containsKey(slot) && usersMap[slot] == user.uid) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Usuario ya pertenece a la red")),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Usuario ya pertenece a la red")));
           return true;
         }
       }
 
-      // 2) Buscar primer slot vacío y escribir
+      // sino, buscar primer slot vacío y escribir
       var slotToWrite = '';
       for (var i = 1; i <= 4; i++) {
         final slot = 'User$i';
-        if (!usersMap.containsKey(slot) ||
-            usersMap[slot] == null ||
-            usersMap[slot].toString().isEmpty) {
+        if (!usersMap.containsKey(slot) || usersMap[slot] == null || usersMap[slot].toString().isEmpty) {
           slotToWrite = slot;
           break;
         }
       }
 
       if (slotToWrite.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("La red ya tiene 4 usuarios.")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("La red ya tiene 4 usuarios.")));
         return false;
       }
 
-      await FirebaseDatabase.instance.ref("network/$redId/Users").update({
-        slotToWrite: user.uid,
-      });
-      await FirebaseDatabase.instance.ref("network/$redId").update({
-        "Connected": true,
-      });
+      await FirebaseDatabase.instance.ref("network/$routerId/Users").update({slotToWrite: user.uid});
+      await FirebaseDatabase.instance.ref("network/$routerId").update({"Connected": true});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Usuario vinculado exitosamente")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Usuario vinculado exitosamente")));
       return true;
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("La red con ID '$routerId' no existe")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("La red con ID '$routerId' no existe")));
     }
   } catch (error) {
-    await showAlertDialog(
-      context: context,
-      title: 'Error',
-      message: "Error al vincular usuario: $error",
-    );
+    await showAlertDialog(context: context, title: 'Error', message: "Error al vincular usuario: $error");
     return false;
   }
   return false;
@@ -149,25 +147,13 @@ Future<String?> askRouterId(BuildContext context) async {
       final controller = TextEditingController();
       return AlertDialog(
         title: const Text('El usuario no esta emparejado con ninguna red'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Id de la red del cliente a emparejar',
-          ),
-        ),
+        content: TextField(controller: controller, decoration: const InputDecoration(labelText: 'Id de la red del cliente a emparejar')),
         actions: [
           ElevatedButton(
-            onPressed:
-                () async => {
-                  Navigator.pop(context, 'false'),
-                  await FirebaseAuth.instance.signOut(),
-                },
+            onPressed: () async => {Navigator.pop(context, 'false'), await FirebaseAuth.instance.signOut()},
             child: const Text('Cerrar Sesion'),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Emparejar'),
-          ),
+          ElevatedButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Emparejar')),
         ],
       );
     },

@@ -29,18 +29,13 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
               .orderBy(FieldPath.documentId)
               .get();
 
-      final deviceNames =
-          snapshot.docs
-              .map((doc) => {'fecha': doc.id, 'potencia': doc['potencia']})
-              .toList();
+      final deviceNames = snapshot.docs.map((doc) => {'fecha': doc.id, 'potencia': doc['potencia']}).toList();
 
       setState(() {
         consumption = deviceNames;
       });
     } catch (error) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error obteniendo data")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error obteniendo data")));
     }
   }
 
@@ -86,36 +81,23 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                 TextField(
                   controller: potenciaController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: "Potencia consumida en kWh",
-                  ),
+                  decoration: const InputDecoration(labelText: "Potencia consumida en kWh"),
                 ),
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancelar"),
-              ),
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
               ElevatedButton(
                 onPressed: () async {
                   final fecha = dateController.text;
                   final potencia = potenciaController.text;
 
                   if (fecha.isEmpty || potencia.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Ingresar fecha y potencia consumida"),
-                      ),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingresar fecha y potencia consumida")));
                   }
                   final potuint = double.tryParse(potencia);
                   if (potuint == null || potuint <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Ingresar solamente numeros positivos"),
-                      ),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingresar solamente numeros positivos")));
                   }
                   try {
                     final docRef = FirebaseFirestore.instance
@@ -127,13 +109,9 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                     final docSnapshot = await docRef.get();
 
                     if (docSnapshot.exists) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "El consumo de potencia para esa fecha ya fue establecido",
-                          ),
-                        ),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text("El consumo de potencia para esa fecha ya fue establecido")));
                     } else {
                       docRef.set({'potencia': potencia});
 
@@ -141,9 +119,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                       _fetchConsumption();
                     }
                   } catch (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Error agregando registro")),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error agregando registro")));
                   }
                 },
                 child: const Text("Guardar"),
@@ -159,10 +135,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
       appBar: AppBar(title: const Text("Consumo Diario")),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ConsumptionChart(consumptions: consumption),
-          ),
+          Padding(padding: const EdgeInsets.all(16.0), child: ConsumptionChart(consumptions: consumption)),
           const SizedBox(height: 10),
           Expanded(
             child:
@@ -175,28 +148,19 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
 
                         return ListTile(
                           title: Text("Fecha: ${consumo['fecha']}"),
-                          subtitle: Text(
-                            "Potencia: ${consumo['potencia']} kWh",
-                          ),
+                          subtitle: Text("Potencia: ${consumo['potencia']} kWh"),
                           trailing: IconButton(
                             icon: Icon(Icons.delete),
                             onPressed: () async {
-                              final uid =
-                                  FirebaseAuth.instance.currentUser!.uid;
+                              final uid = FirebaseAuth.instance.currentUser!.uid;
                               showDialog(
                                 context: context,
                                 builder:
                                     (context) => AlertDialog(
                                       title: Text("Eliminando modulo elemento"),
-                                      content: Text(
-                                        "¿Estas seguro que quieres eliminar este elemento?",
-                                      ),
+                                      content: Text("¿Estas seguro que quieres eliminar este elemento?"),
                                       actions: [
-                                        TextButton(
-                                          onPressed:
-                                              () => Navigator.of(context).pop(),
-                                          child: Text("No"),
-                                        ),
+                                        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text("No")),
                                         TextButton(
                                           onPressed: () async {
                                             await FirebaseFirestore.instance
@@ -206,15 +170,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                                                 .doc(consumo['fecha'])
                                                 .delete();
 
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  "Elemento eliminado",
-                                                ),
-                                              ),
-                                            );
+                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Elemento eliminado")));
                                             setState(() {});
                                             _fetchConsumption();
                                             Navigator.of(context).pop();

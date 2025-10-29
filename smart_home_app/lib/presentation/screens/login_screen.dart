@@ -14,6 +14,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return SignInScreen(
       providers: [EmailAuthProvider()],
+      showPasswordVisibilityToggle: true,
       headerBuilder: (context, constraints, shrinkOffset) {
         return Padding(
           padding: const EdgeInsets.all(20),

@@ -8,13 +8,11 @@ class ConsumptionChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> fechas =
-        consumptions.map((c) => c['fecha'] as String).toList();
+    final List<String> fechas = consumptions.map((c) => c['fecha'] as String).toList();
 
     final List<FlSpot> spots = [];
     for (int i = 0; i < consumptions.length; i++) {
-      final potencia =
-          double.tryParse(consumptions[i]['potencia'].toString()) ?? 0.0;
+      final potencia = double.tryParse(consumptions[i]['potencia'].toString()) ?? 0.0;
       spots.add(FlSpot(i.toDouble(), potencia));
     }
 
@@ -23,13 +21,7 @@ class ConsumptionChart extends StatelessWidget {
       width: double.infinity,
       child: LineChart(
         LineChartData(
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              belowBarData: BarAreaData(show: true),
-              barWidth: 1,
-            ),
-          ],
+          lineBarsData: [LineChartBarData(spots: spots, belowBarData: BarAreaData(show: true), barWidth: 1)],
           titlesData: FlTitlesData(
             topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -42,10 +34,7 @@ class ConsumptionChart extends StatelessWidget {
                   if (value.toInt() < fechas.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        fechas[value.toInt()].substring(5),
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                      child: Text(fechas[value.toInt()].substring(5), style: const TextStyle(fontSize: 12)),
                     );
                   } else {
                     return const SizedBox.shrink();
@@ -58,10 +47,7 @@ class ConsumptionChart extends StatelessWidget {
                 showTitles: true,
                 reservedSize: 40,
                 getTitlesWidget: (value, meta) {
-                  return Text(
-                    '${value.toInt()}',
-                    style: const TextStyle(fontSize: 10),
-                  );
+                  return Text('${value.toInt()}', style: const TextStyle(fontSize: 10));
                 },
               ),
             ),

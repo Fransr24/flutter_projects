@@ -2,18 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-Future<void> showEditAirConfigModal(
-  BuildContext context,
-  String selectedDevice,
-  int temp,
-  int fan,
-  int mode,
-) async {
+Future<void> showEditAirConfigModal(BuildContext context, String selectedDevice, int temp, int fan, int mode) async {
   await showModalBottomSheet(
     context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (context) {
       return _EditAirConfigModalBody(selectedDevice, temp, fan, mode);
     },
@@ -28,8 +20,7 @@ class _EditAirConfigModalBody extends StatefulWidget {
   _EditAirConfigModalBody(this.selectedDevice, this.temp, this.fan, this.mode);
 
   @override
-  State<_EditAirConfigModalBody> createState() =>
-      _EditAirConfigModalBodyState();
+  State<_EditAirConfigModalBody> createState() => _EditAirConfigModalBodyState();
 }
 
 class _EditAirConfigModalBodyState extends State<_EditAirConfigModalBody> {
@@ -49,16 +40,13 @@ class _EditAirConfigModalBodyState extends State<_EditAirConfigModalBody> {
 
   @override
   Widget build(BuildContext context) {
-    final modeList = ["-", "Frío", "Calor", "Auto"];
+    final modeList = ["Frío", "Calor", "Auto"];
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            "Editar configuración",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text("Editar configuración", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           TextFormField(
             decoration: const InputDecoration(labelText: "Temperatura (°C)"),
@@ -69,15 +57,7 @@ class _EditAirConfigModalBodyState extends State<_EditAirConfigModalBody> {
           DropdownButtonFormField<int>(
             decoration: const InputDecoration(labelText: "FAN"),
             value: fan,
-            items:
-                [0, 1, 2, 3]
-                    .map(
-                      (val) => DropdownMenuItem(
-                        value: val,
-                        child: Text(val.toString()),
-                      ),
-                    )
-                    .toList(),
+            items: [1, 2, 3].map((val) => DropdownMenuItem(value: val, child: Text(val.toString()))).toList(),
             onChanged: (val) {
               fan = val!;
             },
@@ -86,15 +66,7 @@ class _EditAirConfigModalBodyState extends State<_EditAirConfigModalBody> {
           DropdownButtonFormField<int>(
             decoration: const InputDecoration(labelText: "Modo"),
             value: mode,
-            items:
-                [0, 1, 2, 3]
-                    .map(
-                      (val) => DropdownMenuItem(
-                        value: val,
-                        child: Text(modeList[val]),
-                      ),
-                    )
-                    .toList(),
+            items: [0, 1, 2].map((val) => DropdownMenuItem(value: val, child: Text(modeList[val]))).toList(),
             onChanged: (val) {
               mode = val!;
             },
@@ -103,25 +75,19 @@ class _EditAirConfigModalBodyState extends State<_EditAirConfigModalBody> {
           ElevatedButton.icon(
             onPressed: () async {
               try {
-                await FirebaseDatabase.instance
-                    .ref("air/${widget.selectedDevice}")
-                    .update({
-                      'ACTemp': int.tryParse(temperatureController.text) ?? 0,
-                      'Speed': fan,
-                      "Mode": mode,
-                    });
+                await FirebaseDatabase.instance.ref("air/${widget.selectedDevice}").update({
+                  'ACTemp': int.tryParse(temperatureController.text) ?? 0,
+                  'Speed': fan,
+                  "Mode": mode,
+                });
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Error seteando los datos")),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error seteando los datos")));
               }
               Navigator.pop(context);
             },
             icon: const Icon(Icons.save),
             label: const Text("Guardar cambios"),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
+            style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_home_app/presentation/screens/air_conditioning_screen.dart';
 import 'package:smart_home_app/presentation/screens/consumption_screen.dart';
+import 'package:smart_home_app/presentation/screens/devices_screen.dart';
 import 'package:smart_home_app/presentation/screens/home_screen.dart';
 import 'package:smart_home_app/presentation/screens/light_screen.dart';
 import 'package:smart_home_app/presentation/screens/login_screen.dart';
@@ -36,9 +37,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: isLoggedIn ? '/home' : '/login',
-    refreshListenable: GoRouterRefreshStream(
-      FirebaseAuth.instance.authStateChanges(),
-    ),
+    refreshListenable: GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
     redirect: (context, state) {
       final user = FirebaseAuth.instance.currentUser;
       final isLoggingIn = state.uri.path == '/login';
@@ -51,18 +50,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: "/login", builder: (context, state) => LoginScreen()),
       GoRoute(path: "/home", builder: (context, state) => HomeScreen()),
       GoRoute(path: "/light", builder: (context, state) => LightScreen()),
-      GoRoute(
-        path: "/air",
-        builder: (context, state) => AirConditioningScreen(),
-      ),
-      GoRoute(
-        path: "/myprofile",
-        builder: (context, state) => MyProfileScreen(),
-      ),
-      GoRoute(
-        path: "/consumption",
-        builder: (context, state) => ConsumptionScreen(),
-      ),
+      GoRoute(path: "/air", builder: (context, state) => AirConditioningScreen()),
+      GoRoute(path: "/myprofile", builder: (context, state) => MyProfileScreen()),
+      GoRoute(path: "/consumption", builder: (context, state) => ConsumptionScreen()),
+      GoRoute(path: "/devices", builder: (context, state) => DevicesScreen()),
     ],
   );
 });

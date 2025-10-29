@@ -11,18 +11,12 @@ import 'package:smart_home_app/presentation/widgets/firebase_options.dart';
 
 enum DeviceType { luces, aire }
 
-class DeviceAppBar extends ConsumerStatefulWidget
-    implements PreferredSizeWidget {
+class DeviceAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final String selectedDevice;
   final DeviceType type;
   final void Function(String) onDevChanged;
 
-  DeviceAppBar({
-    super.key,
-    required this.selectedDevice,
-    required this.onDevChanged,
-    required this.type,
-  });
+  DeviceAppBar({super.key, required this.selectedDevice, required this.onDevChanged, required this.type});
 
   @override
   ConsumerState<DeviceAppBar> createState() => _DeviceAppBarState();
@@ -61,33 +55,55 @@ class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
     final redId = ref.watch(redIdProvider);
     try {
       final collectionName = _getCollectionName(_type);
-      final snapshot =
-          await FirebaseDatabase.instance
-              .ref(collectionName)
-              .orderByChild("Network")
-              .equalTo(redId)
-              .get();
+
+      final deviceProviderValue = ref.watch(devicesProvider);
+      final List<String> allDevices = (deviceProviderValue is List) ? List<String>.from(deviceProviderValue) : <String>[];
+
+      final filteredDevices =
+          allDevices.where((d) {
+            if (collectionName == 'lights') {
+              return d.startsWith('MLP'); // luces empiezan con MLP
+            } else if (collectionName == 'air') {
+              return d.startsWith('AIR'); // aire empiezan con AIR
+            }
+            return false;
+          }).toList();
 
       final deviceList = <Map<String, dynamic>>[];
 
-      for (final child in snapshot.children) {
-        final data = child.value as Map<dynamic, dynamic>;
-        deviceList.add({'id': child.key, 'name': data['Name']});
-      }
+      // Recorremos cada device id filtrado y consultamos su nodo individual
+      for (final dev in filteredDevices) {
+        try {
+          final snap = await FirebaseDatabase.instance.ref("$collectionName/$dev").get();
+          final data = snap.value as Map<dynamic, dynamic>;
 
+          // Me dijo si esta en connected = true
+          final connectedRaw = data['Connected'];
+          final bool isConnected = (connectedRaw == true) || (connectedRaw?.toString().toLowerCase() == 'true');
+
+          if (!isConnected) {
+            // Si no está marcado como conectado, lo ignoramos
+            continue;
+          }
+
+          // Me llevo name
+          final nameRaw = data['Name'];
+          final name = nameRaw?.toString();
+
+          deviceList.add({'id': dev, 'name': name});
+        } catch (innerError) {
+          await showAlertDialog(context: context, title: 'Error', message: 'Error leyendo device $dev: $innerError');
+          continue;
+        }
+      }
       setState(() {
         _availableDevices = deviceList;
-        _selectedDevice =
-            deviceList.isNotEmpty ? deviceList.first['id'] : 'Sin dispositivos';
+        _selectedDevice = deviceList.isNotEmpty ? deviceList.first['id'] : 'Sin dispositivos';
       });
 
       widget.onDevChanged(_selectedDevice);
     } catch (e) {
-      showAlertDialog(
-        context: context,
-        title: "Error",
-        message: "Error actualizando dispositivo",
-      );
+      showAlertDialog(context: context, title: "Error", message: "Error actualizando dispositivo: $e");
     }
   }
 
@@ -110,10 +126,7 @@ class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
                 isExpanded: true,
                 items:
                     _availableDevices.map((dev) {
-                      return DropdownMenuItem(
-                        value: dev['id'] as String,
-                        child: Text(dev['name']),
-                      );
+                      return DropdownMenuItem(value: dev['id'] as String, child: Text(dev['name']));
                     }).toList(),
                 onChanged: (newValue) {
                   if (newValue != null) {
@@ -127,226 +140,11 @@ class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete),
-            tooltip: 'Eliminar Dispositivo',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: Text("Eliminando modulo $_deviceName"),
-                      content: Text(
-                        "¿Estas seguro que quieres eliminar este elemento?",
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text("No"),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            try {
-                              if (_type == DeviceType.luces) {
-                                await FirebaseDatabase.instance
-                                    .ref("lights/$_selectedDevice")
-                                    .remove();
-                              }
-                              if (_type == DeviceType.aire) {
-                                await FirebaseDatabase.instance
-                                    .ref("air/$_selectedDevice")
-                                    .remove();
-                              }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    "Modulo $_deviceName eliminado",
-                                  ),
-                                ),
-                              );
-                              await _fetchDevices();
-
-                              Navigator.of(context).pop();
-                            } catch (error) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    "Error eliminando módulo: $error",
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text("Si"),
-                        ),
-                      ],
-                    ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Agregar modulo',
+            icon: const Icon(Icons.edit),
+            tooltip: 'Editar dispositivo',
             onPressed: () async {
-              if (_type == DeviceType.luces || _type == DeviceType.aire) {
-                await showDialog(
-                  context: context,
-                  builder: (context) {
-                    return StatefulBuilder(
-                      builder: (context, setState) {
-                        return AlertDialog(
-                          title: Text(
-                            _type == DeviceType.luces
-                                ? 'Agregar nuevo modulo de luces'
-                                : 'Agregar nuevo modulo de aire acondicionado',
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(
-                                controller: controllerId,
-                                decoration: const InputDecoration(
-                                  labelText: 'Inserte el Id del modulo',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-
-                              TextField(
-                                controller: controllerName,
-                                decoration: const InputDecoration(
-                                  labelText: 'Inserte el nombre del modulo',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-
-                              TextField(
-                                controller: controllerDescription,
-                                decoration: const InputDecoration(
-                                  labelText:
-                                      'Inserte una descripcion del modulo',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () async {
-                                final name = controllerName.text;
-                                final id = controllerId.text;
-                                final description = controllerDescription.text;
-
-                                final collectionName =
-                                    _type == DeviceType.luces
-                                        ? "lights"
-                                        : "air";
-                                final defaultData =
-                                    _type == DeviceType.luces
-                                        ? {
-                                          'Network': redId,
-                                          'Connected': true,
-                                          'Name': name,
-                                          'Description': description,
-                                          'On': false,
-                                          'SecondaryLight': "testidsecondlight",
-                                          'TimeOff': "*",
-                                          'TimeOn': "*",
-                                        }
-                                        : {
-                                          'Network': redId,
-                                          'Connected': true,
-                                          'Name': name,
-                                          'Description': description,
-                                          'On': false,
-                                          'Mode': 0,
-                                          'SensorTemp': 20,
-                                          'ACTemp': 24,
-                                          'Speed': 1,
-                                          'TempMax': 40,
-                                          'TempMin': 3,
-                                          'TimeOff': "*",
-                                          'TimeOn': "*",
-                                          'ToggleLimits': false,
-                                        };
-
-                                try {
-                                  final deviceRef = FirebaseDatabase.instance
-                                      .ref("$collectionName/$id");
-
-                                  final deviceSnap = await deviceRef.get();
-
-                                  if (deviceSnap.exists) {
-                                    showAlertDialog(
-                                      context: context,
-                                      title: "Error",
-                                      message:
-                                          "El módulo ya existe y se encuentra registrado",
-                                    );
-                                    return;
-                                  }
-
-                                  final querySnap =
-                                      await FirebaseDatabase.instance
-                                          .ref(collectionName)
-                                          .orderByChild("Network")
-                                          .equalTo(redId)
-                                          .get();
-
-                                  bool nameExists = false;
-                                  for (final child in querySnap.children) {
-                                    final data =
-                                        child.value as Map<dynamic, dynamic>;
-                                    if (data['nombre'] == name) {
-                                      nameExists = true;
-                                      break;
-                                    }
-                                  }
-
-                                  if (nameExists) {
-                                    showAlertDialog(
-                                      context: context,
-                                      title: "Error",
-                                      message:
-                                          "Ya existe un dispositivo con ese nombre, prueba uno distinto",
-                                    );
-                                    return;
-                                  }
-                                  await deviceRef.set(defaultData);
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        "Módulo ${controllerName.text} agregado",
-                                      ),
-                                    ),
-                                  );
-                                  await _fetchDevices();
-                                  Navigator.of(context).pop();
-                                } catch (error) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        "Error al emparejar dispositivo",
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: const Text('Guardar'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              }
+              await showDeviceDetailDialog(context, ref, collection: collectionName, id: _selectedDevice);
+              _fetchDevices();
             },
           ),
         ],

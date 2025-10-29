@@ -11,9 +11,6 @@ class DeviceButton {
 const List<DeviceButton> deviceButons = [
   DeviceButton(label: "Luces", route: "/light", icon: Icons.lightbulb_outline),
   DeviceButton(label: "Aire acondicionado", route: "/air", icon: Icons.ac_unit),
-  DeviceButton(
-    label: "Consumo",
-    route: "/consumption",
-    icon: Icons.auto_graph_sharp,
-  ),
+  DeviceButton(label: "Dispositivos", route: "/devices", icon: Icons.devices),
+  DeviceButton(label: "Consumo", route: "/devices", icon: Icons.auto_graph_sharp),
 ];
