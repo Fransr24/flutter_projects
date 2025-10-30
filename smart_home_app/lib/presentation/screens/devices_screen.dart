@@ -96,14 +96,16 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     }
   }
 
-  Future<void> _pairDevice(BuildContext context, _DeviceModel device) async {
+  Future<void> _pairDevice(BuildContext context, _DeviceModel device, String censoredId) async {
     final redId = ref.read(redIdProvider);
     if (redId == null) {
       await showAlertDialog(context: context, title: 'Error', message: 'No hay red seleccionada');
       return;
     }
-    final nameController = TextEditingController(text: device.name);
-    final descController = TextEditingController(text: device.description);
+
+    final idController = TextEditingController();
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
 
     final _formKey = GlobalKey<FormState>();
 
@@ -142,7 +144,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Theme.of(context).primaryColorDark),
                         ),
                       ),
-                      Text(device.id, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      Text(censoredId, style: const TextStyle(fontSize: 12, color: Colors.black54)),
                     ],
                   ),
                 ),
@@ -158,6 +160,28 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text('Datos del módulo', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                          const SizedBox(height: 12),
+
+                          TextFormField(
+                            controller: idController,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'ID del dispositivo',
+                              hintText: 'Ej: MLP-1234',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Ingresá el ID del dispositivo';
+                              }
+                              if (value.trim() != device.id) {
+                                return 'El ID no coincide con el del dispositivo real';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
 
@@ -253,7 +277,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
     if (result != true) return;
 
-    // En caso de que el usuario haya presionado emparejar, lo guardo en la db
     final newName = nameController.text.trim();
     final newDesc = descController.text.trim();
 
@@ -270,7 +293,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dispositivo emparejado correctamente')));
-      // refrescar
       await _loadDevices();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error emparejando dispositivo: $e')));
@@ -278,6 +300,17 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
   }
 
   Widget _buildDeviceTile(_DeviceModel d) {
+    String _maskedId(String id) {
+      if (id == null) return '';
+      final s = id.toString();
+      if (s.length <= 2) return '*' * s.length;
+      final keep = 2;
+      final maskedLen = s.length - keep;
+      return '${'*' * maskedLen}${s.substring(s.length - keep)}';
+    }
+
+    final String idText = d.connected ? (d.name ?? '') : _maskedId(d.id ?? '');
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -293,13 +326,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           ),
           child: Center(
             child: Icon(
-              d.collection == 'air' ? Icons.thermostat_outlined : Icons.lightbulb_outline,
-              color: d.connected ? Colors.green.shade700 : Colors.red.shade700,
+              d.connected ? (d.collection == 'air' ? Icons.thermostat_outlined : Icons.lightbulb_outline) : Icons.power_off_outlined,
+              color: d.connected ? Colors.green.shade700 : Colors.red.shade600,
               size: 22,
             ),
           ),
         ),
-        title: Text(d.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(idText, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         subtitle: Text(
           d.description.isNotEmpty ? d.description : '— Sin descripción —',
           style: const TextStyle(fontSize: 13, color: Colors.black54),
@@ -316,7 +349,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            // si no está emparejado se muestra un icono "+"
             Icon(
               d.connected ? Icons.chevron_right_rounded : Icons.add_circle_outline,
               color: d.connected ? Colors.black26 : Theme.of(context).primaryColor,
@@ -324,10 +356,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           ],
         ),
 
-        // Si no está emparejado, se empareja
         onTap: () async {
           if (!d.connected) {
-            _pairDevice(context, d);
+            _pairDevice(context, d, idText);
           } else {
             await showDeviceDetailDialog(context, ref, collection: d.collection, id: d.id);
             _loadDevices();
