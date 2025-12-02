@@ -16,6 +16,6 @@ class MainApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    return MaterialApp.router(theme: ThemeData(primarySwatch: Colors.blue), routerConfig: router);
+    return MaterialApp.router(debugShowCheckedModeBanner: false, theme: ThemeData(primarySwatch: Colors.blue), routerConfig: router);
   }
 }

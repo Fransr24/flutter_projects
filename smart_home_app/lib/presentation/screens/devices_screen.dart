@@ -301,12 +301,17 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   Widget _buildDeviceTile(_DeviceModel d) {
     String _maskedId(String id) {
-      if (id == null) return '';
       final s = id.toString();
-      if (s.length <= 2) return '*' * s.length;
-      final keep = 2;
-      final maskedLen = s.length - keep;
-      return '${'*' * maskedLen}${s.substring(s.length - keep)}';
+      if (s.length <= 6) {
+        if (s.length <= 2) return '*' * s.length;
+        return '${s.substring(0, 1)}${'*' * (s.length - 2)}${s.substring(s.length - 1)}';
+      }
+
+      const keepStart = 3;
+      const keepEnd = 3;
+      final middleLen = s.length - keepStart - keepEnd;
+
+      return '${s.substring(0, keepStart)}${'*' * middleLen}${s.substring(s.length - keepEnd)}';
     }
 
     final String idText = d.connected ? (d.name ?? '') : _maskedId(d.id ?? '');

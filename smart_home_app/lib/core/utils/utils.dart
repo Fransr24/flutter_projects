@@ -61,7 +61,7 @@ Future<void> showDeviceDetailDialog(BuildContext context, WidgetRef ref, {requir
 
   final mode = data['Mode'] ?? '—';
   final sensorTemp = data['SensorTemp'] ?? '--';
-  final acTemp = data['ACTemp'] ?? '--';
+  final acTemp = data['AcTemp'] ?? '--';
   final speed = data['Speed'] ?? '--';
   final tempMax = data['TempMax'] ?? '--';
   final tempMin = data['TempMin'] ?? '--';
@@ -217,7 +217,7 @@ Future<void> showDeviceDetailDialog(BuildContext context, WidgetRef ref, {requir
                     if (isAir) ...[
                       _roRow('Modo', mode.toString()),
                       _roRow('Temperatura ambiente (SensorTemp)', sensorTemp.toString()),
-                      _roRow('Temperatura AIR (ACTemp)', acTemp.toString()),
+                      _roRow('Temperatura AIR (AcTemp)', acTemp.toString()),
                       _roRow('FAN (Speed)', speed.toString()),
                       _roRow('TempMax', tempMax.toString()),
                       _roRow('TempMin', tempMin.toString()),

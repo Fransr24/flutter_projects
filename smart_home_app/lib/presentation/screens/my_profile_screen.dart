@@ -411,12 +411,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                           style: TextStyle(color: user.emailVerified ? Colors.green.shade700 : Colors.orange.shade700),
                         ),
                       ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Nota: la imagen se comprime a calidad 60 y 800px como máximo antes de guardarla.',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               ),

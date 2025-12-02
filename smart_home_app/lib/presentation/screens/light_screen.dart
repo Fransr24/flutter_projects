@@ -490,7 +490,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                                     );
                                     if (confirm == true) {
                                       try {
-                                        await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': ''});
+                                        await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': '-'});
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(const SnackBar(content: Text('Luz secundaria desasociada')));

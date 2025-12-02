@@ -1,6 +1,7 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_home_app/core/utils/utils.dart';
+import 'package:smart_home_app/presentation/widgets/air_config_creation.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
 import 'package:smart_home_app/presentation/widgets/modals/eddit_air_config_modal.dart';
 
@@ -16,6 +17,8 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
   bool isairConditioningOn = false;
   String? selectedTime;
   int? timerMinutes;
+  int? _visualMode;
+  bool _modeSaving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +54,10 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
 
                   final sensorTempText = (data['SensorTemp'] ?? '--').toString();
 
-                  final acTempText = (data['ACTemp'] ?? '--').toString();
+                  final acTempText = (data['AcTemp'] ?? '--').toString();
                   final String fan = data['Speed']?.toString() ?? '-';
                   final String mode = data['Mode']?.toString() ?? '-';
+                  final String swing = data['Swing']?.toString() ?? '-';
                   final String timeOn = data['TimeOn']?.toString() ?? '';
                   final String timeOff = data['TimeOff']?.toString() ?? '';
                   final String isOnText = isOn ? 'Encendido' : 'Apagado';
@@ -61,7 +65,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                   final Color isOnBackgroundColor = isOn ? Colors.green.shade50 : Colors.red.shade50;
 
                   // lista de modos, el índice coincide con el valor del campo Mode
-                  final modeList = ["Frío", "Calor", "Auto"];
+                  final modeList = ["Calor", "Frío"];
 
                   // convertimos el valor de mode (que viene como string o número) al texto
                   int modeIndex = int.tryParse(mode.toString()) ?? 0;
@@ -117,6 +121,12 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                     );
                   }
 
+                  final int currentModeVal = int.tryParse(mode.toString()) ?? 1; // 1 = Calor, 2 = Frío
+                  _visualMode ??= currentModeVal;
+
+                  final MaterialColor coldColor = Colors.lightBlue;
+                  final MaterialColor hotColor = Colors.deepOrange;
+
                   // Si llegamos acá hay datos
                   return Column(
                     children: [
@@ -163,6 +173,174 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
 
                       const SizedBox(height: 12),
 
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: const Text(
+                                        'Modo',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                                  if (_modeSaving) const SizedBox(width: 8),
+                                  if (_modeSaving) const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap:
+                                          _modeSaving
+                                              ? null
+                                              : () async {
+                                                final int newMode = 1;
+                                                if (_visualMode == newMode) return;
+                                                setState(() => _visualMode = newMode);
+                                                setState(() => _modeSaving = true);
+                                                try {
+                                                  await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({
+                                                    'Mode': newMode,
+                                                  });
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(const SnackBar(content: Text('Modo cambiado a CALOR')));
+                                                } catch (e) {
+                                                  setState(() => _visualMode = currentModeVal);
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(const SnackBar(content: Text('Error actualizando el modo')));
+                                                } finally {
+                                                  if (mounted) setState(() => _modeSaving = false);
+                                                }
+                                              },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 220),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: (_visualMode == 1) ? hotColor.withOpacity(0.12) : Colors.grey.shade50,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: (_visualMode == 1) ? hotColor.withOpacity(0.9) : Colors.grey.shade200,
+                                            width: (_visualMode == 1) ? 1.6 : 1,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 18,
+                                              backgroundColor: (_visualMode == 1) ? hotColor : Colors.grey.shade100,
+                                              child: Icon(
+                                                Icons.local_fire_department,
+                                                color: (_visualMode == 1) ? Colors.white : hotColor,
+                                                size: 18,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Calor',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: (_visualMode == 1) ? hotColor.shade700 : Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            if (_visualMode == 1)
+                                              Text('Activo', style: TextStyle(fontSize: 12, color: hotColor.shade700))
+                                            else
+                                              const SizedBox.shrink(),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap:
+                                          _modeSaving
+                                              ? null
+                                              : () async {
+                                                final int newMode = 2;
+                                                if (_visualMode == newMode) return;
+                                                setState(() => _visualMode = newMode);
+                                                setState(() => _modeSaving = true);
+                                                try {
+                                                  await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({
+                                                    'Mode': newMode,
+                                                  });
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(const SnackBar(content: Text('Modo cambiado a FRÍO')));
+                                                } catch (e) {
+                                                  setState(() => _visualMode = currentModeVal);
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(const SnackBar(content: Text('Error actualizando el modo')));
+                                                } finally {
+                                                  if (mounted) setState(() => _modeSaving = false);
+                                                }
+                                              },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 220),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: (_visualMode == 2) ? coldColor.withOpacity(0.12) : Colors.grey.shade50,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: (_visualMode == 2) ? coldColor.withOpacity(0.9) : Colors.grey.shade200,
+                                            width: (_visualMode == 2) ? 1.6 : 1,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 18,
+                                              backgroundColor: (_visualMode == 2) ? coldColor : Colors.grey.shade100,
+                                              child: Icon(Icons.ac_unit, color: (_visualMode == 2) ? Colors.white : coldColor, size: 18),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Frío',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: (_visualMode == 2) ? coldColor.shade700 : Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            if (_visualMode == 2)
+                                              Text('Activo', style: TextStyle(fontSize: 12, color: coldColor.shade700))
+                                            else
+                                              const SizedBox.shrink(),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       // Config card
                       Card(
                         elevation: 4,
@@ -180,13 +358,14 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                       try {
                                         final String acTempStr = acTempText?.toString() ?? '';
                                         final String fanStr = fan?.toString() ?? '';
-                                        final String modeStr = mode?.toString() ?? '';
+                                        final String swingStr = (swing != null) ? swing.toString() : '';
 
-                                        final int acTempVal = int.tryParse(acTempStr) ?? 24; // temperatura objetivo por defecto
-                                        final int fanVal = int.tryParse(fanStr) ?? 1; // velocidad por defecto
-                                        final int modeVal = int.tryParse(modeStr) ?? 0; // modo por defecto
+                                        final int acTempVal = int.tryParse(acTempStr) ?? 24;
+                                        final int fanVal = int.tryParse(fanStr) ?? 1;
 
-                                        showEditAirConfigModal(context, selectedAirConditioning, acTempVal, fanVal, modeVal);
+                                        final bool swingVal = (swing is bool) ? (swing as bool) : (swingStr.toLowerCase() == 'true');
+
+                                        showEditAirConfigModal(context, selectedAirConditioning, acTempVal, fanVal, swingVal);
                                       } catch (e) {
                                         ScaffoldMessenger.of(
                                           context,
@@ -205,102 +384,170 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                 children: [
                                   Chip(label: Text("T°: $acTempText °C")),
                                   Chip(label: Text("FAN: $fan")),
-                                  Chip(label: Text("Modo: $modeText")),
+                                  Chip(
+                                    label: Text(
+                                      "Swing: ${((swing is bool) ? (swing as bool) : (swing?.toString().toLowerCase() == 'true')) ? 'Activado' : 'Desactivado'}",
+                                    ),
+                                  ),
                                 ],
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                "Esta configuracion sirve para que recuerdes como tenias configurado el aire acondicionado al momento de guardarlo. No sirve para configurarlo directamente. Para eso vuelva a configurar el aire acondicionado",
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w200),
                               ),
                             ],
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 16),
-
                       // Horario On
-                      const Text(
-                        "Establecer horario de encendido del aire acondicionado:",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final TimeOfDay? pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-                                if (pickedTime != null) {
-                                  final formatted =
-                                      "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                                  try {
-                                    await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({'TimeOn': formatted});
-                                  } catch (e) {
-                                    await showAlertDialog(
-                                      context: context,
-                                      title: 'Error actualizando el estado del dispositivo',
-                                      message: 'No se pudo cambiar el estado de programación de encendido',
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.timer),
-                              label: const Text("Seleccionar hora"),
-                              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        timeOn.isNotEmpty ? 'Horario de encendido programado: $timeOn hrs' : 'Horario de encendido programado: - : - hrs',
-                        style: const TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-
                       const SizedBox(height: 16),
 
-                      // Horario Off
-                      const Text(
-                        "Establecer horario de apagado del aire acondicionado:",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final TimeOfDay? pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-                                if (pickedTime != null) {
-                                  final formatted =
-                                      "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-                                  try {
-                                    await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({'TimeOff': formatted});
-                                  } catch (e) {
-                                    await showAlertDialog(
-                                      context: context,
-                                      title: 'Error actualizando el estado del dispositivo',
-                                      message: 'No se pudo cambiar el estado de programación de apagado',
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.timer),
-                              label: const Text("Seleccionar hora"),
-                              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        timeOff.isNotEmpty ? 'Horario de apagado programado: $timeOff hrs' : 'Horario de apagado programado: - : - hrs',
-                        style: const TextStyle(fontSize: 16, color: Colors.grey),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth > 520;
+                          Widget scheduleCard({
+                            required IconData icon,
+                            required String title,
+                            required String currentValue,
+                            required Future<void> Function() onPick,
+                            required Future<void> Function() onClear,
+                            required Color accent,
+                          }) {
+                            return Card(
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(color: accent.withOpacity(0.12), shape: BoxShape.circle),
+                                      padding: const EdgeInsets.all(10),
+                                      child: Icon(icon, color: accent, size: 22),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            currentValue.isNotEmpty ? currentValue + ' hrs' : 'Sin programación',
+                                            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.schedule),
+                                          label: const Text('Seleccionar'),
+                                          style: OutlinedButton.styleFrom(minimumSize: const Size(140, 44)),
+                                          onPressed: onPick,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        TextButton.icon(
+                                          onPressed: currentValue.isNotEmpty ? onClear : null,
+                                          icon: const Icon(Icons.delete_outline, size: 18),
+                                          label: const Text('Borrar'),
+                                          style: TextButton.styleFrom(minimumSize: const Size(80, 36)),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          Future<void> _pickTimeAndSave(String field) async {
+                            final TimeOfDay? picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                            if (picked == null) return;
+                            final formatted = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+                            try {
+                              await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({field: formatted});
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Horario guardado')));
+                            } catch (e) {
+                              await showAlertDialog(
+                                context: context,
+                                title: 'Error',
+                                message: 'No se pudo guardar la programación. Intente nuevamente.',
+                              );
+                            }
+                          }
+
+                          Future<void> _clearTime(String field) async {
+                            final confirm =
+                                await showDialog<bool>(
+                                  context: context,
+                                  builder:
+                                      (ctx) => AlertDialog(
+                                        title: const Text('Borrar programación'),
+                                        content: const Text('¿Desea eliminar esta programación?'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+                                          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Eliminar')),
+                                        ],
+                                      ),
+                                ) ??
+                                false;
+                            if (!confirm) return;
+                            try {
+                              await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({field: ''});
+                              if (mounted)
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Programación eliminada')));
+                            } catch (e) {
+                              await showAlertDialog(
+                                context: context,
+                                title: 'Error',
+                                message: 'No se pudo borrar la programación. Intente nuevamente.',
+                              );
+                            }
+                          }
+
+                          final onCard = scheduleCard(
+                            icon: Icons.power_settings_new,
+                            title: 'Horario de encendido',
+                            currentValue: timeOn,
+                            onPick: () => _pickTimeAndSave('TimeOn'),
+                            onClear: () => _clearTime('TimeOn'),
+                            accent: Colors.green,
+                          );
+                          final offCard = scheduleCard(
+                            icon: Icons.power_off,
+                            title: 'Horario de apagado',
+                            currentValue: timeOff,
+                            onPick: () => _pickTimeAndSave('TimeOff'),
+                            onClear: () => _clearTime('TimeOff'),
+                            accent: Colors.redAccent,
+                          );
+
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [Expanded(child: onCard), const SizedBox(width: 12), Expanded(child: offCard)],
+                            );
+                          } else {
+                            return Column(children: [onCard, const SizedBox(height: 12), offCard]);
+                          }
+                        },
                       ),
 
-                      const SizedBox(height: 16),
+                      // Botón que abre selector de modo y luego inicia el wizard (reemplaza al botón previo)
+                      const SizedBox(height: 12),
+
+                      // Sección de acciones avanzadas
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Acciones avanzadas",
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      ConfigureAirButton(deviceId: selectedAirConditioning),
                     ],
                   );
                 },
