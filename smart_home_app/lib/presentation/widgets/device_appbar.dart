@@ -1,13 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_home_app/core/providers.dart';
 import 'package:smart_home_app/core/utils/utils.dart';
-import 'package:smart_home_app/presentation/widgets/firebase_options.dart';
 
 enum DeviceType { luces, aire }
 
@@ -27,7 +23,6 @@ class DeviceAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget
 
 class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
   late String _selectedDevice = "";
-  late String _deviceName = "";
   late DeviceType _type;
   late List<Map<String, dynamic>> _availableDevices = [];
   late String collectionName;
@@ -52,12 +47,11 @@ class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
   }
 
   Future<void> _fetchDevices() async {
-    final redId = ref.watch(redIdProvider);
     try {
       final collectionName = _getCollectionName(_type);
 
       final deviceProviderValue = ref.watch(devicesProvider);
-      final List<String> allDevices = (deviceProviderValue is List) ? List<String>.from(deviceProviderValue) : <String>[];
+      final List<String> allDevices = List<String>.from(deviceProviderValue);
 
       final filteredDevices =
           allDevices.where((d) {
@@ -109,12 +103,6 @@ class _DeviceAppBarState extends ConsumerState<DeviceAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController controllerId = TextEditingController();
-    final TextEditingController controllerName = TextEditingController();
-    final TextEditingController controllerDescription = TextEditingController();
-
-    final redId = ref.watch(redIdProvider);
-
     return AppBar(
       title: Row(
         children: [

@@ -34,7 +34,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final redId = ref.read(redIdProvider);
     final rawDevices = ref.read(devicesProvider);
 
-    if (redId == null || rawDevices == null) {
+    if (redId == null) {
       setState(() {
         _error = 'No hay red seleccionada o lista de dispositivos vacía.';
         _loading = false;
@@ -42,9 +42,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       return;
     }
 
-    final List<String> ids = (rawDevices is List) ? List<String>.from(rawDevices) : <String>[];
+    final List<String> ids = List<String>.from(rawDevices);
 
-    final filtered = ids.where((id) => id != null && id.toString().trim().isNotEmpty).toList();
+    final filtered = ids.where((id) => id.toString().trim().isNotEmpty).toList();
 
     try {
       // Fetch en paralelo
@@ -87,7 +87,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         _disconnected = disconnectedList;
         _loading = false;
       });
-    } catch (e, st) {
+    } catch (e) {
       await showAlertDialog(context: context, title: 'Error cargando dispositivos', message: 'Error cargando dispositivos: $e');
       setState(() {
         _error = 'Error cargando dispositivos: $e';
@@ -314,7 +314,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       return '${s.substring(0, keepStart)}${'*' * middleLen}${s.substring(s.length - keepEnd)}';
     }
 
-    final String idText = d.connected ? (d.name ?? '') : _maskedId(d.id ?? '');
+    final String idText = d.connected ? (d.name) : _maskedId(d.id);
 
     return Card(
       elevation: 2,

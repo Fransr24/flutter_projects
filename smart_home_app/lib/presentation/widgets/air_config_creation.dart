@@ -25,7 +25,6 @@ class ConfigureAirButton extends StatelessWidget {
 
     String? selectedMode;
 
-    // Leemos el estado actual de los 3 flags en DB antes de mostrar el diálogo
     int valorFrio = 0, valorCaliente = 0, valorApagado = 0;
     try {
       final snapFrio = await ref.child('ConfigOnCold').get();
@@ -62,6 +61,11 @@ class ConfigureAirButton extends StatelessWidget {
             Widget? _secondaryFor(String modeKey, int modeVal) {
               if (modeVal == 2) {
                 return TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   onPressed: () async {
                     final confirm =
                         await showDialog<bool>(
@@ -83,115 +87,136 @@ class ConfigureAirButton extends StatelessWidget {
                     if (!confirm) return;
                     Navigator.of(ctx).pop(modeKey);
                   },
-                  child: const Text('Reconfigurar', style: TextStyle(fontSize: 12)),
+                  child: const Text('Reconfigurar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
                 );
               }
               return null;
             }
 
+            final dialogContent = ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.65, maxWidth: 560),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RadioListTile<String>(
+                      value: 'frio',
+                      groupValue: selectedMode,
+                      title: const Text('Encendido Frío'),
+                      subtitle: Text(_labelFor(valorFrio), style: TextStyle(color: _colorFor(valorFrio))),
+                      secondary: _secondaryFor('frio', valorFrio),
+                      onChanged:
+                          valorFrio == 2
+                              ? null
+                              : (v) async {
+                                if (valorFrio == 1) {
+                                  final overwrite =
+                                      await showDialog<bool>(
+                                        context: ctx,
+                                        builder:
+                                            (c) => AlertDialog(
+                                              title: const Text('Sobrescribir configuración'),
+                                              content: const Text(
+                                                'Actualmente esta opción se está configurando por otro proceso. ¿Desea sobrescribirlo y comenzar una nueva configuración?',
+                                              ),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.of(c).pop(true),
+                                                  child: const Text('Sobrescribir'),
+                                                ),
+                                              ],
+                                            ),
+                                      ) ??
+                                      false;
+                                  if (!overwrite) return;
+                                }
+                                setState(() => selectedMode = v);
+                              },
+                    ),
+                    RadioListTile<String>(
+                      value: 'caliente',
+                      groupValue: selectedMode,
+                      title: const Text('Encendido Calor'),
+                      subtitle: Text(_labelFor(valorCaliente), style: TextStyle(color: _colorFor(valorCaliente))),
+                      secondary: _secondaryFor('caliente', valorCaliente),
+                      onChanged:
+                          valorCaliente == 2
+                              ? null
+                              : (v) async {
+                                if (valorCaliente == 1) {
+                                  final overwrite =
+                                      await showDialog<bool>(
+                                        context: ctx,
+                                        builder:
+                                            (c) => AlertDialog(
+                                              title: const Text('Sobrescribir configuración'),
+                                              content: const Text(
+                                                'Actualmente esta opción se está configurando por otro proceso. ¿Desea sobrescribirlo y comenzar una nueva configuración?',
+                                              ),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.of(c).pop(true),
+                                                  child: const Text('Sobrescribir'),
+                                                ),
+                                              ],
+                                            ),
+                                      ) ??
+                                      false;
+                                  if (!overwrite) return;
+                                }
+                                setState(() => selectedMode = v);
+                              },
+                    ),
+                    RadioListTile<String>(
+                      value: 'apagado',
+                      groupValue: selectedMode,
+                      title: const Text('Apagado'),
+                      subtitle: Text(_labelFor(valorApagado), style: TextStyle(color: _colorFor(valorApagado))),
+                      secondary: _secondaryFor('apagado', valorApagado),
+                      onChanged:
+                          valorApagado == 2
+                              ? null
+                              : (v) async {
+                                if (valorApagado == 1) {
+                                  final overwrite =
+                                      await showDialog<bool>(
+                                        context: ctx,
+                                        builder:
+                                            (c) => AlertDialog(
+                                              title: const Text('Sobrescribir configuración'),
+                                              content: const Text(
+                                                'Actualmente esta opción se está configurando por otro proceso. ¿Desea sobrescribirlo y comenzar una nueva configuración?',
+                                              ),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
+                                                ElevatedButton(
+                                                  onPressed: () => Navigator.of(c).pop(true),
+                                                  child: const Text('Sobrescribir'),
+                                                ),
+                                              ],
+                                            ),
+                                      ) ??
+                                      false;
+                                  if (!overwrite) return;
+                                }
+                                setState(() => selectedMode = v);
+                              },
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Seleccioná la opción que querés configurar y luego presioná "Iniciar configuración".',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+            );
+
             return AlertDialog(
               title: const Text('Seleccionar configuración'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  RadioListTile<String>(
-                    value: 'frio',
-                    groupValue: selectedMode,
-                    title: const Text('Encendido Frío'),
-                    subtitle: Text(_labelFor(valorFrio), style: TextStyle(color: _colorFor(valorFrio))),
-                    secondary: _secondaryFor('frio', valorFrio),
-                    onChanged:
-                        valorFrio == 2
-                            ? null
-                            : (v) async {
-                              if (valorFrio == 1) {
-                                final overwrite =
-                                    await showDialog<bool>(
-                                      context: ctx,
-                                      builder:
-                                          (c) => AlertDialog(
-                                            title: const Text('Sobrescribir configuración'),
-                                            content: const Text(
-                                              'Actualmente esta opción se está configurando por otro proceso. ¿Desea sobrescribirlo y comenzar una nueva configuración?',
-                                            ),
-                                            actions: [
-                                              TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
-                                              ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sobrescribir')),
-                                            ],
-                                          ),
-                                    ) ??
-                                    false;
-                                if (!overwrite) return;
-                              }
-                              setState(() => selectedMode = v);
-                            },
-                  ),
-                  RadioListTile<String>(
-                    value: 'caliente',
-                    groupValue: selectedMode,
-                    title: const Text('Encendido Calor'),
-                    subtitle: Text(_labelFor(valorCaliente), style: TextStyle(color: _colorFor(valorCaliente))),
-                    secondary: _secondaryFor('caliente', valorCaliente),
-                    onChanged:
-                        valorCaliente == 2
-                            ? null
-                            : (v) async {
-                              if (valorCaliente == 1) {
-                                final overwrite =
-                                    await showDialog<bool>(
-                                      context: ctx,
-                                      builder:
-                                          (c) => AlertDialog(
-                                            title: const Text('Sobrescribir configuración'),
-                                            content: const Text(
-                                              'Actualmente esta opción se está configurando por otro proceso. ¿Desea sobrescribirlo y comenzar una nueva configuración?',
-                                            ),
-                                            actions: [
-                                              TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
-                                              ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sobrescribir')),
-                                            ],
-                                          ),
-                                    ) ??
-                                    false;
-                                if (!overwrite) return;
-                              }
-                              setState(() => selectedMode = v);
-                            },
-                  ),
-                  RadioListTile<String>(
-                    value: 'apagado',
-                    groupValue: selectedMode,
-                    title: const Text('Apagado'),
-                    subtitle: Text(_labelFor(valorApagado), style: TextStyle(color: _colorFor(valorApagado))),
-                    secondary: _secondaryFor('apagado', valorApagado),
-                    onChanged:
-                        valorApagado == 2
-                            ? null
-                            : (v) async {
-                              if (valorApagado == 1) {
-                                final overwrite =
-                                    await showDialog<bool>(
-                                      context: ctx,
-                                      builder:
-                                          (c) => AlertDialog(
-                                            title: const Text('Sobrescribir configuración'),
-                                            content: const Text(
-                                              'Actualmente esta opción se está configurando por otro proceso. ¿Desea sobrescribirlo y comenzar una nueva configuración?',
-                                            ),
-                                            actions: [
-                                              TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancelar')),
-                                              ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sobrescribir')),
-                                            ],
-                                          ),
-                                    ) ??
-                                    false;
-                                if (!overwrite) return;
-                              }
-                              setState(() => selectedMode = v);
-                            },
-                  ),
-                ],
-              ),
+              content: dialogContent,
               actions: [
                 TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancelar')),
                 ElevatedButton(
@@ -501,6 +526,7 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
     _pollTimer = null;
     _polling = false;
     _pollSeconds = 0;
+    setState(() {});
   }
 
   Future<void> _handlePollingTimeout() async {
@@ -616,165 +642,191 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
                                     ? Align(
                                       alignment: Alignment.topCenter,
                                       child: ConstrainedBox(
-                                        constraints: const BoxConstraints(maxWidth: 640),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const SizedBox(height: 5),
+                                        constraints: BoxConstraints(maxWidth: 640, maxHeight: MediaQuery.of(context).size.height * 0.72),
+                                        child: SingleChildScrollView(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const SizedBox(height: 5),
+                                                Text(
+                                                  'Espera a que el dispositivo confirme que el proceso a finalizado correctamente',
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(fontSize: 16),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Card(
+                                                  color: Theme.of(context).cardColor,
+                                                  elevation: 4,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+                                                    child: Column(
+                                                      children: [
+                                                        Text(
+                                                          'Esperando confirmación del dispositivo',
+                                                          textAlign: TextAlign.center,
+                                                          style: Theme.of(
+                                                            context,
+                                                          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                                                        ),
+                                                        const SizedBox(height: 18),
 
-                                            Text(
-                                              'Espera a que el dispositivo confirme que el proceso a finalizado correctamente',
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(fontSize: 16),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Card(
-                                              color: Theme.of(context).cardColor,
-                                              elevation: 4,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                              child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
-                                                child: Column(
-                                                  children: [
-                                                    Text(
-                                                      'Esperando confirmación del dispositivo',
-                                                      textAlign: TextAlign.center,
-                                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                                                    ),
-                                                    const SizedBox(height: 18),
-
-                                                    AnimatedSwitcher(
-                                                      duration: const Duration(milliseconds: 350),
-                                                      child:
-                                                          _remoteConfigStep == 3
-                                                              ? Column(
-                                                                key: const ValueKey('success'),
-                                                                children: [
-                                                                  Container(
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors.green.shade50,
-                                                                      shape: BoxShape.circle,
-                                                                    ),
-                                                                    padding: const EdgeInsets.all(12),
-                                                                    child: const Icon(Icons.check_circle, color: Colors.green, size: 86),
-                                                                  ),
-                                                                  const SizedBox(height: 12),
-                                                                  Text(
-                                                                    'Configuración exitosa',
-                                                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                                      color: Colors.green,
-                                                                      fontWeight: FontWeight.w700,
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(height: 8),
-                                                                  Text(
-                                                                    'El dispositivo confirmó correctamente la configuración.',
-                                                                    textAlign: TextAlign.center,
-                                                                    style: Theme.of(context).textTheme.bodySmall,
-                                                                  ),
-                                                                ],
-                                                              )
-                                                              : Column(
-                                                                key: const ValueKey('waiting'),
-                                                                children: [
-                                                                  SizedBox(
-                                                                    height: 120,
-                                                                    width: 120,
-                                                                    child: Stack(
-                                                                      alignment: Alignment.center,
-                                                                      children: [
-                                                                        SizedBox(
-                                                                          height: 120,
-                                                                          width: 120,
-                                                                          child: CircularProgressIndicator(
-                                                                            strokeWidth: 8,
-                                                                            value:
-                                                                                (_pollTimeoutSeconds > 0)
-                                                                                    ? ((_pollSeconds / _pollTimeoutSeconds).clamp(0.0, 1.0))
-                                                                                    : null,
-                                                                          ),
-                                                                        ),
-                                                                        if (_polling)
-                                                                          const Padding(
-                                                                            padding: EdgeInsets.all(8.0),
-                                                                            child: Icon(Icons.hourglass_empty, size: 36),
-                                                                          )
-                                                                        else
-                                                                          const Padding(
-                                                                            padding: EdgeInsets.all(8.0),
-                                                                            child: Icon(Icons.play_circle_outline, size: 36),
-                                                                          ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-
-                                                                  const SizedBox(height: 14),
-
-                                                                  Text(
-                                                                    _polling
-                                                                        ? 'Esperando confirmación...'
-                                                                        : 'Listo para iniciar la espera de configuración',
-                                                                    style: Theme.of(
-                                                                      context,
-                                                                    ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                                                                  ),
-                                                                  const SizedBox(height: 8),
-
-                                                                  Text(
-                                                                    _polling
-                                                                        ? 'Tiempo transcurrido: ${_pollSeconds}s / ${_pollTimeoutSeconds}s'
-                                                                        : 'Al llegar a este paso el dispositivo debe confirmar la configuración.',
-                                                                    textAlign: TextAlign.center,
-                                                                    style: Theme.of(
-                                                                      context,
-                                                                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                                                                  ),
-                                                                  const SizedBox(height: 12),
-
-                                                                  Row(
-                                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                        AnimatedSwitcher(
+                                                          duration: const Duration(milliseconds: 350),
+                                                          child:
+                                                              _remoteConfigStep == 3
+                                                                  ? Column(
+                                                                    key: const ValueKey('success'),
                                                                     children: [
-                                                                      TextButton.icon(
-                                                                        onPressed:
-                                                                            _polling
-                                                                                ? null
-                                                                                : () async {
-                                                                                  _startPolling();
-                                                                                },
-                                                                        icon: const Icon(Icons.play_arrow),
-                                                                        label: const Text('Iniciar espera'),
+                                                                      Container(
+                                                                        decoration: BoxDecoration(
+                                                                          color: Colors.green.shade50,
+                                                                          shape: BoxShape.circle,
+                                                                        ),
+                                                                        padding: const EdgeInsets.all(12),
+                                                                        child: const Icon(
+                                                                          Icons.check_circle,
+                                                                          color: Colors.green,
+                                                                          size: 86,
+                                                                        ),
                                                                       ),
-                                                                      const SizedBox(width: 8),
-                                                                      TextButton.icon(
-                                                                        onPressed:
-                                                                            _polling
-                                                                                ? () async {
-                                                                                  _stopPolling();
-                                                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                                                    const SnackBar(content: Text('Espera detenida')),
-                                                                                  );
-                                                                                }
-                                                                                : null,
-                                                                        icon: const Icon(Icons.stop),
-                                                                        label: const Text('Detener'),
+                                                                      const SizedBox(height: 12),
+                                                                      Text(
+                                                                        'Configuración exitosa',
+                                                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                                          color: Colors.green,
+                                                                          fontWeight: FontWeight.w700,
+                                                                        ),
+                                                                      ),
+                                                                      const SizedBox(height: 8),
+                                                                      Text(
+                                                                        'El dispositivo confirmó correctamente la configuración.',
+                                                                        textAlign: TextAlign.center,
+                                                                        style: Theme.of(context).textTheme.bodySmall,
+                                                                      ),
+                                                                    ],
+                                                                  )
+                                                                  : Column(
+                                                                    key: const ValueKey('waiting'),
+                                                                    children: [
+                                                                      SizedBox(
+                                                                        height: 120,
+                                                                        width: 120,
+                                                                        child: Stack(
+                                                                          alignment: Alignment.center,
+                                                                          children: [
+                                                                            SizedBox(
+                                                                              height: 120,
+                                                                              width: 120,
+                                                                              child: CircularProgressIndicator(
+                                                                                strokeWidth: 8,
+                                                                                value:
+                                                                                    (_pollTimeoutSeconds > 0)
+                                                                                        ? ((_pollSeconds / _pollTimeoutSeconds).clamp(
+                                                                                          0.0,
+                                                                                          1.0,
+                                                                                        ))
+                                                                                        : null,
+                                                                              ),
+                                                                            ),
+                                                                            if (_polling)
+                                                                              const Padding(
+                                                                                padding: EdgeInsets.all(8.0),
+                                                                                child: Icon(Icons.hourglass_empty, size: 36),
+                                                                              )
+                                                                            else
+                                                                              const Padding(
+                                                                                padding: EdgeInsets.all(8.0),
+                                                                                child: Icon(Icons.play_circle_outline, size: 36),
+                                                                              ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                      const SizedBox(height: 14),
+                                                                      Text(
+                                                                        _polling
+                                                                            ? 'Esperando confirmación...'
+                                                                            : 'Listo para iniciar la espera de configuración',
+                                                                        style: Theme.of(
+                                                                          context,
+                                                                        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                                                        textAlign: TextAlign.center,
+                                                                      ),
+                                                                      const SizedBox(height: 8),
+                                                                      Text(
+                                                                        _polling
+                                                                            ? 'Tiempo transcurrido: ${_pollSeconds}s / ${_pollTimeoutSeconds}s'
+                                                                            : 'Al llegar a este paso el dispositivo debe confirmar la configuración.',
+                                                                        textAlign: TextAlign.center,
+                                                                        style: Theme.of(
+                                                                          context,
+                                                                        ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                                                                      ),
+                                                                      const SizedBox(height: 12),
+
+                                                                      Wrap(
+                                                                        alignment: WrapAlignment.center,
+                                                                        spacing: 8,
+                                                                        runSpacing: 8,
+                                                                        children: [
+                                                                          SizedBox(
+                                                                            height: 44,
+                                                                            child: TextButton.icon(
+                                                                              onPressed: _polling ? null : () => _startPolling(),
+                                                                              icon: const Icon(Icons.play_arrow),
+                                                                              label: const Text('Iniciar espera'),
+                                                                              style: TextButton.styleFrom(minimumSize: const Size(120, 44)),
+                                                                            ),
+                                                                          ),
+                                                                          SizedBox(
+                                                                            height: 44,
+                                                                            child: TextButton.icon(
+                                                                              onPressed:
+                                                                                  _polling
+                                                                                      ? () {
+                                                                                        _stopPolling();
+                                                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                                                          const SnackBar(content: Text('Espera detenida')),
+                                                                                        );
+                                                                                      }
+                                                                                      : null,
+                                                                              icon: const Icon(Icons.stop),
+                                                                              label: const Text('Detener'),
+                                                                              style: TextButton.styleFrom(minimumSize: const Size(120, 44)),
+                                                                            ),
+                                                                          ),
+                                                                          SizedBox(
+                                                                            height: 44,
+                                                                            child: OutlinedButton.icon(
+                                                                              onPressed: _polling ? null : () => _startPolling(),
+                                                                              icon: const Icon(Icons.refresh),
+                                                                              label: const Text('Reintentar'),
+                                                                              style: OutlinedButton.styleFrom(
+                                                                                minimumSize: const Size(120, 44),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ],
                                                                       ),
                                                                     ],
                                                                   ),
-                                                                ],
-                                                              ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ],
+                                                  ),
                                                 ),
-                                              ),
+                                                const SizedBox(height: 16),
+                                                Text(
+                                                  'Sigue las instrucciones anteriores y espera a que el equipo confirme. Si pasado 1 minuto no hay confirmación, se ofrecerá reintentar automáticamente.',
+                                                  textAlign: TextAlign.center,
+                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                                                ),
+                                                const SizedBox(height: 8),
+                                              ],
                                             ),
-
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'Sigue las instrucciones anteriores y espera a que el equipo confirme. Si pasado 1 minuto no hay confirmación, se ofrecerá reintentar automáticamente.',
-                                              textAlign: TextAlign.center,
-                                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                                            ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     )

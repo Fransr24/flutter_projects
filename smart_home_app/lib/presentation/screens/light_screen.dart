@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_home_app/core/providers.dart';
 import 'package:smart_home_app/core/utils/utils.dart';
 import 'package:smart_home_app/presentation/widgets/device_appbar.dart';
+import 'dart:async';
 
 class LightScreen extends ConsumerStatefulWidget {
   const LightScreen({super.key});
@@ -18,6 +19,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
   String? selectedTime;
   int? timerMinutes;
   bool isLoading = true;
+  bool _switchLocked = false;
 
   void initState() {
     super.initState();
@@ -27,10 +29,9 @@ class _LightScreenState extends ConsumerState<LightScreen> {
     final already = ref.read(isFetchingDevicesProvider);
     if (already) return;
     ref.read(isFetchingDevicesProvider.notifier).state = true;
-    final redId = ref.read(redIdProvider);
     final deviceProviderValue = ref.read(devicesProvider);
 
-    final List<String> allDevices = (deviceProviderValue is List) ? List<String>.from(deviceProviderValue) : <String>[];
+    final List<String> allDevices = List<String>.from(deviceProviderValue);
 
     final filteredDevices = allDevices.where((d) => d.toUpperCase().startsWith('MLP')).toList();
 
@@ -90,7 +91,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
 
   // muestra timePicker 24h y actualiza el campo en la db
   Future<void> _pickAndSetTime(String field, String label) async {
-    if (selectedLight == null || selectedLight!.isEmpty) {
+    if (selectedLight.isEmpty) {
       await showAlertDialog(
         context: context,
         title: 'Sin dispositivo',
@@ -119,7 +120,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
 
   // Elimina el campo (TimeOn/TimeOff) de la database
   Future<void> _removeSchedule(String field, String label) async {
-    if (selectedLight == null || selectedLight!.isEmpty) {
+    if (selectedLight.isEmpty) {
       await showAlertDialog(
         context: context,
         title: 'Sin dispositivo',
@@ -157,7 +158,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
 
   Future<String?> _showSecondarySelectionDialog() async {
     final deviceProvValue = ref.read(devicesProvider);
-    final List<String> allDevices = (deviceProvValue is List) ? List<String>.from(deviceProvValue) : <String>[];
+    final List<String> allDevices = List<String>.from(deviceProvValue);
 
     final candidates = allDevices.where((d) => d.startsWith('MLS') && d != selectedLight).toList();
 
@@ -210,7 +211,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                 final assignedInfo = assigned[id];
                 final bool isAssigned = assignedInfo != null;
                 final assignedText =
-                    isAssigned ? 'Ya asociada a ${assignedInfo!['primaryName']} (${assignedInfo['primaryId']})' : 'Disponible para asociar';
+                    isAssigned ? 'Ya asociada a ${assignedInfo['primaryName']} (${assignedInfo['primaryId']})' : 'Disponible para asociar';
                 return ListTile(
                   leading: Icon(isAssigned ? Icons.link_off : Icons.lightbulb_outline, color: isAssigned ? Colors.red : Colors.green),
                   title: Text(id, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -248,10 +249,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               StreamBuilder<DatabaseEvent>(
-                stream:
-                    (selectedLight != null && selectedLight.isNotEmpty)
-                        ? FirebaseDatabase.instance.ref("lights/$selectedLight").onValue
-                        : null,
+                stream: (selectedLight.isNotEmpty) ? FirebaseDatabase.instance.ref("lights/$selectedLight").onValue : null,
                 builder: (context, snapshot) {
                   if ((snapshot.connectionState == ConnectionState.waiting) ||
                       (snapshot.connectionState == ConnectionState.none) && isLoading) {
@@ -305,7 +303,7 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                   }
 
                   final data = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                  final isLightOn = data['On'] ?? false;
+                  var isLightOn = data['On'] ?? false;
                   final icon = isLightOn ? Icons.lightbulb : Icons.lightbulb_outline;
                   final iconColor = isLightOn ? Colors.amber.shade600 : Colors.grey.shade400;
 
@@ -437,136 +435,254 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Luz secundaria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 10),
-                          if (isSecondaryPaired) ...[
-                            Row(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 420;
+
+                          Widget _actionButtons({required bool hasValue, required VoidCallback onChange, required VoidCallback onUnlink}) {
+                            return Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              alignment: WrapAlignment.end,
                               children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.12), shape: BoxShape.circle),
-                                  child: const Center(child: Icon(Icons.device_hub, color: Colors.green)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(child: Text(secondaryLightId!, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
-                                TextButton(
-                                  onPressed: () async {
-                                    final chosen = await _showSecondarySelectionDialog();
-                                    if (chosen != null) {
-                                      try {
-                                        await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': chosen});
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(SnackBar(content: Text('Luz secundaria asociada: $chosen')));
-                                      } catch (e) {
-                                        await showAlertDialog(
-                                          context: context,
-                                          title: 'Error',
-                                          message: 'No se pudo asociar la luz secundaria: $e',
-                                        );
-                                      }
-                                    }
-                                  },
-                                  child: const Text('Cambiar'),
-                                ),
-                                const SizedBox(width: 6),
-                                OutlinedButton(
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder:
-                                          (c) => AlertDialog(
-                                            title: const Text('Desasociar luz secundaria'),
-                                            content: const Text('¿Querés desasociar la luz secundaria del módulo actual?'),
-                                            actions: [
-                                              TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('No')),
-                                              ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sí')),
+                                TextButton(onPressed: onChange, child: const Text('Cambiar')),
+                                OutlinedButton(onPressed: hasValue ? onUnlink : null, child: const Text('Desasociar')),
+                              ],
+                            );
+                          }
+
+                          Widget _pairedView() {
+                            return isNarrow
+                                ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(color: Colors.green.shade100, shape: BoxShape.circle),
+                                          child: const Center(child: Icon(Icons.device_hub, color: Colors.green)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Text('Luz secundaria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                secondaryLightId!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                              ),
                                             ],
                                           ),
-                                    );
-                                    if (confirm == true) {
-                                      try {
-                                        await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': '-'});
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(const SnackBar(content: Text('Luz secundaria desasociada')));
-                                      } catch (e) {
-                                        await showAlertDialog(context: context, title: 'Error', message: 'No se pudo desasociar: $e');
-                                      }
-                                    }
-                                  },
-                                  child: const Text('Desasociar'),
-                                ),
-                              ],
-                            ),
-                          ] else ...[
-                            Row(
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(color: Colors.grey.withOpacity(0.06), shape: BoxShape.circle),
-                                  child: const Center(child: Icon(Icons.device_hub_outlined, color: Colors.grey)),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    'No hay luz secundaria asociada',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    icon: const Icon(Icons.link),
-                                    label: const Text('Asociar luz secundaria'),
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                      ],
                                     ),
-                                    onPressed: () async {
-                                      // Abrir selector de devices
-                                      final chosen = await _showSecondarySelectionDialog();
-                                      if (chosen == null) {
-                                        return;
-                                      }
-                                      // Confirmar
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder:
-                                            (c) => AlertDialog(
-                                              title: const Text('Confirmar asociación'),
-                                              content: Text('¿Querés asociar la luz secundaria "$chosen" al módulo actual?'),
-                                              actions: [
-                                                TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('No')),
-                                                ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sí')),
-                                              ],
-                                            ),
-                                      );
-                                      if (confirm != true) return;
-                                      try {
-                                        await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': chosen});
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(SnackBar(content: Text('Luz secundaria asociada: $chosen')));
-                                      } catch (e) {
-                                        await showAlertDialog(context: context, title: 'Error', message: 'No se pudo asociar: $e');
-                                      }
-                                    },
-                                  ),
+                                    const SizedBox(height: 10),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: _actionButtons(
+                                        hasValue: true,
+                                        onChange: () async {
+                                          final chosen = await _showSecondarySelectionDialog();
+                                          if (chosen != null) {
+                                            try {
+                                              await FirebaseDatabase.instance.ref("lights/$selectedLight").update({
+                                                'SecondaryLight': chosen,
+                                              });
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(SnackBar(content: Text('Luz secundaria asociada: $chosen')));
+                                            } catch (e) {
+                                              await showAlertDialog(
+                                                context: context,
+                                                title: 'Error',
+                                                message: 'No se pudo asociar la luz secundaria: $e',
+                                              );
+                                            }
+                                          }
+                                        },
+                                        onUnlink: () async {
+                                          final confirm =
+                                              await showDialog<bool>(
+                                                context: context,
+                                                builder:
+                                                    (c) => AlertDialog(
+                                                      title: const Text('Desasociar luz secundaria'),
+                                                      content: const Text('¿Querés desasociar la luz secundaria del módulo actual?'),
+                                                      actions: [
+                                                        TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('No')),
+                                                        ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sí')),
+                                                      ],
+                                                    ),
+                                              ) ??
+                                              false;
+                                          if (confirm) {
+                                            try {
+                                              await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': '-'});
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(const SnackBar(content: Text('Luz secundaria desasociada')));
+                                            } catch (e) {
+                                              await showAlertDialog(context: context, title: 'Error', message: 'No se pudo desasociar: $e');
+                                            }
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                )
+                                : Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(color: Colors.green.shade100, shape: BoxShape.circle),
+                                      child: const Center(child: Icon(Icons.device_hub, color: Colors.green)),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        secondaryLightId!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _actionButtons(
+                                      hasValue: true,
+                                      onChange: () async {
+                                        final chosen = await _showSecondarySelectionDialog();
+                                        if (chosen != null) {
+                                          try {
+                                            await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': chosen});
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(SnackBar(content: Text('Luz secundaria asociada: $chosen')));
+                                          } catch (e) {
+                                            await showAlertDialog(
+                                              context: context,
+                                              title: 'Error',
+                                              message: 'No se pudo asociar la luz secundaria: $e',
+                                            );
+                                          }
+                                        }
+                                      },
+                                      onUnlink: () async {
+                                        final confirm =
+                                            await showDialog<bool>(
+                                              context: context,
+                                              builder:
+                                                  (c) => AlertDialog(
+                                                    title: const Text('Desasociar luz secundaria'),
+                                                    content: const Text('¿Querés desasociar la luz secundaria del módulo actual?'),
+                                                    actions: [
+                                                      TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('No')),
+                                                      ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sí')),
+                                                    ],
+                                                  ),
+                                            ) ??
+                                            false;
+                                        if (confirm) {
+                                          try {
+                                            await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': '-'});
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(const SnackBar(content: Text('Luz secundaria desasociada')));
+                                          } catch (e) {
+                                            await showAlertDialog(context: context, title: 'Error', message: 'No se pudo desasociar: $e');
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                );
+                          }
+
+                          Widget _unpairedView() {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(color: Colors.grey.withOpacity(0.06), shape: BoxShape.circle),
+                                      child: const Center(child: Icon(Icons.device_hub_outlined, color: Colors.grey)),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: const [
+                                          Text(
+                                            'No hay luz secundaria asociada',
+                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        icon: const Icon(Icons.link),
+                                        label: const Text('Asociar luz secundaria'),
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                        onPressed: () async {
+                                          final chosen = await _showSecondarySelectionDialog();
+                                          if (chosen == null) return;
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder:
+                                                (c) => AlertDialog(
+                                                  title: const Text('Confirmar asociación'),
+                                                  content: Text('¿Querés asociar la luz secundaria "$chosen" al módulo actual?'),
+                                                  actions: [
+                                                    TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('No')),
+                                                    ElevatedButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('Sí')),
+                                                  ],
+                                                ),
+                                          );
+                                          if (confirm != true) return;
+                                          try {
+                                            await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'SecondaryLight': chosen});
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(SnackBar(content: Text('Luz secundaria asociada: $chosen')));
+                                          } catch (e) {
+                                            await showAlertDialog(context: context, title: 'Error', message: 'No se pudo asociar: $e');
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
-                            ),
-                          ],
-                        ],
+                            );
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Luz secundaria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 10),
+                              if (isSecondaryPaired) _pairedView() else _unpairedView(),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   );
@@ -579,7 +695,6 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                       Text(deviceName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 12),
 
-                      // Card de encendido/apagado
                       Card(
                         elevation: 3,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -588,20 +703,56 @@ class _LightScreenState extends ConsumerState<LightScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Encender/Apagar', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-                              Switch(
-                                value: isLightOn,
-                                onChanged: (value) async {
-                                  try {
-                                    await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'On': value});
-                                  } catch (e) {
-                                    await showAlertDialog(
-                                      context: context,
-                                      title: 'Error actualizando el estado del dispositivo',
-                                      message: 'No se pudo cambiar el estado de encendido de la luz',
-                                    );
-                                  }
-                                },
+                              Flexible(
+                                child: Text(
+                                  'Encender/Apagar',
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  if (_switchLocked) ...[
+                                    const SizedBox(width: 8),
+                                    SizedBox(height: 18, width: 18, child: const CircularProgressIndicator(strokeWidth: 2)),
+                                  ],
+                                  const SizedBox(width: 8),
+                                  Switch(
+                                    value: isLightOn,
+                                    onChanged:
+                                        _switchLocked
+                                            ? null
+                                            : (value) async {
+                                              setState(() {
+                                                isLightOn = value;
+                                                _switchLocked = true;
+                                              });
+
+                                              try {
+                                                await FirebaseDatabase.instance.ref("lights/$selectedLight").update({'On': value});
+                                              } catch (e) {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    isLightOn = !value;
+                                                    _switchLocked = false;
+                                                  });
+                                                }
+                                                await showAlertDialog(
+                                                  context: context,
+                                                  title: 'Error actualizando el estado del dispositivo',
+                                                  message: 'No se pudo cambiar el estado de encendido de la luz',
+                                                );
+                                                return;
+                                              }
+
+                                              Future.delayed(const Duration(seconds: 3), () {
+                                                if (mounted) setState(() => _switchLocked = false);
+                                              });
+                                            },
+                                  ),
+                                ],
                               ),
                             ],
                           ),

@@ -1,7 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smart_home_app/core/providers.dart';
 
 Future<void> showAlertDialog({required BuildContext context, required String title, required String message}) async {
   return showDialog(
@@ -115,9 +114,18 @@ Future<void> showDeviceDetailDialog(BuildContext context, WidgetRef ref, {requir
                           ),
                         ),
                         const SizedBox(width: 10),
-                        if (network.isNotEmpty) Text('Red: $network', style: const TextStyle(color: Colors.black54)),
+                        if (network.isNotEmpty)
+                          Expanded(
+                            child: Text(
+                              'Red: $network',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                          ),
                       ],
                     ),
+
                     const SizedBox(height: 12),
 
                     const Text('Nombre', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -207,7 +215,6 @@ Future<void> showDeviceDetailDialog(BuildContext context, WidgetRef ref, {requir
                     const Divider(),
                     const SizedBox(height: 8),
 
-                    // Read-only info section
                     const Text('Información:', style: TextStyle(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
                     _roRow('Encendido', onState.toString()),

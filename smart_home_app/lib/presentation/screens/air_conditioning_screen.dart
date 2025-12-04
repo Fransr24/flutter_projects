@@ -19,6 +19,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
   int? timerMinutes;
   int? _visualMode;
   bool _modeSaving = false;
+  bool _switchLocked = false;
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +49,8 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                   final rawValue = snapshot.hasData ? snapshot.data!.snapshot.value : null;
                   final Map<dynamic, dynamic> data = (rawValue is Map) ? Map<dynamic, dynamic>.from(rawValue) : <dynamic, dynamic>{};
 
-                  // Valores por defecto
                   final dynamic rawIsOn = data['On'];
-                  final bool isOn = (rawIsOn == true) || (rawIsOn?.toString().toLowerCase() == 'true');
+                  bool isOn = (rawIsOn == true) || (rawIsOn?.toString().toLowerCase() == 'true');
 
                   final sensorTempText = (data['SensorTemp'] ?? '--').toString();
 
@@ -64,13 +64,10 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                   final Color isOnColor = isOn ? Colors.green : Colors.red;
                   final Color isOnBackgroundColor = isOn ? Colors.green.shade50 : Colors.red.shade50;
 
-                  // lista de modos, el índice coincide con el valor del campo Mode
                   final modeList = ["Calor", "Frío"];
 
-                  // convertimos el valor de mode (que viene como string o número) al texto
                   int modeIndex = int.tryParse(mode.toString()) ?? 0;
                   if (modeIndex < 0 || modeIndex >= modeList.length) modeIndex = 0;
-                  final modeText = modeList[modeIndex];
 
                   final noData = data.isEmpty;
                   if (noData) {
@@ -154,17 +151,47 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Encender/Apagar', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-                              Switch.adaptive(
-                                value: isOn,
-                                onChanged: (value) async {
-                                  try {
-                                    await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({'On': value});
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(
-                                      context,
-                                    ).showSnackBar(const SnackBar(content: Text('Error actualizando el estado del dispositivo')));
-                                  }
-                                },
+                              Row(
+                                children: [
+                                  if (_switchLocked) ...[
+                                    const SizedBox(width: 8),
+                                    SizedBox(height: 18, width: 18, child: const CircularProgressIndicator(strokeWidth: 2)),
+                                  ],
+                                  const SizedBox(width: 8),
+                                  Switch(
+                                    value: isOn,
+                                    onChanged:
+                                        _switchLocked
+                                            ? null
+                                            : (value) async {
+                                              setState(() {
+                                                isOn = value;
+                                                _switchLocked = true;
+                                              });
+
+                                              try {
+                                                await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({'On': value});
+                                              } catch (e) {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    isOn = !value;
+                                                    _switchLocked = false;
+                                                  });
+                                                }
+                                                await showAlertDialog(
+                                                  context: context,
+                                                  title: 'Error actualizando el estado del dispositivo',
+                                                  message: 'No se pudo cambiar el estado de encendido de la luz',
+                                                );
+                                                return;
+                                              }
+
+                                              Future.delayed(const Duration(seconds: 3), () {
+                                                if (mounted) setState(() => _switchLocked = false);
+                                              });
+                                            },
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -356,9 +383,9 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                   IconButton(
                                     onPressed: () {
                                       try {
-                                        final String acTempStr = acTempText?.toString() ?? '';
-                                        final String fanStr = fan?.toString() ?? '';
-                                        final String swingStr = (swing != null) ? swing.toString() : '';
+                                        final String acTempStr = acTempText.toString();
+                                        final String fanStr = fan.toString();
+                                        final String swingStr = swing.toString();
 
                                         final int acTempVal = int.tryParse(acTempStr) ?? 24;
                                         final int fanVal = int.tryParse(fanStr) ?? 1;
@@ -386,7 +413,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                   Chip(label: Text("FAN: $fan")),
                                   Chip(
                                     label: Text(
-                                      "Swing: ${((swing is bool) ? (swing as bool) : (swing?.toString().toLowerCase() == 'true')) ? 'Activado' : 'Desactivado'}",
+                                      "Swing: ${((swing is bool) ? (swing as bool) : (swing.toString().toLowerCase() == 'true')) ? 'Activado' : 'Desactivado'}",
                                     ),
                                   ),
                                 ],
@@ -534,10 +561,301 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                         },
                       ),
 
-                      // Botón que abre selector de modo y luego inicia el wizard (reemplaza al botón previo)
                       const SizedBox(height: 12),
 
-                      // Sección de acciones avanzadas
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth > 520;
+                          Future<void> _openTempEditor({
+                            required BuildContext ctx,
+                            required String fieldKey,
+                            required int initialValue,
+                            required int minAllowed,
+                            required int maxAllowed,
+                            required int? otherValue,
+                          }) async {
+                            int temp = initialValue.clamp(minAllowed, maxAllowed);
+                            final controller = TextEditingController(text: temp.toString());
+
+                            await showModalBottomSheet(
+                              context: ctx,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+                              builder: (sheetCtx) {
+                                return StatefulBuilder(
+                                  builder: (sctx, setS) {
+                                    void _setTemp(int v) {
+                                      setS(() {
+                                        temp = v.clamp(minAllowed, maxAllowed);
+                                        controller.text = temp.toString();
+                                      });
+                                    }
+
+                                    Future<void> _save() async {
+                                      final parsed = int.tryParse(controller.text);
+                                      if (parsed == null) {
+                                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Valor inválido')));
+                                        return;
+                                      }
+                                      int toSave = parsed.clamp(minAllowed, maxAllowed);
+
+                                      if (fieldKey == 'TempMin' && otherValue != null && toSave > otherValue) {
+                                        await showDialog(
+                                          context: sheetCtx,
+                                          builder:
+                                              (dctx) => AlertDialog(
+                                                title: const Text('Valor no válido'),
+                                                content: Text('La temperatura mínima no puede ser mayor que la máxima ($otherValue °C).'),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('Aceptar')),
+                                                ],
+                                              ),
+                                        );
+                                        return;
+                                      }
+                                      if (fieldKey == 'TempMax' && otherValue != null && toSave < otherValue) {
+                                        await showDialog(
+                                          context: sheetCtx,
+                                          builder:
+                                              (dctx) => AlertDialog(
+                                                title: const Text('Valor no válido'),
+                                                content: Text('La temperatura máxima no puede ser menor que la mínima ($otherValue °C).'),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('Aceptar')),
+                                                ],
+                                              ),
+                                        );
+                                        return;
+                                      }
+
+                                      try {
+                                        await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({fieldKey: toSave});
+                                        if (mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Guardado')));
+                                        Navigator.of(sheetCtx).pop();
+                                      } catch (e) {
+                                        await showAlertDialog(
+                                          context: ctx,
+                                          title: 'Error',
+                                          message: 'No se pudo guardar la temperatura. Intente nuevamente.',
+                                        );
+                                      }
+                                    }
+
+                                    return Padding(
+                                      padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              fieldKey == 'TempMin' ? 'Establecer temperatura mínima' : 'Establecer temperatura máxima',
+                                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Rango permitido: $minAllowed° - $maxAllowed°',
+                                              style: TextStyle(color: Colors.grey.shade700),
+                                            ),
+                                            const SizedBox(height: 12),
+
+                                            Slider(
+                                              min: minAllowed.toDouble(),
+                                              max: maxAllowed.toDouble(),
+                                              divisions: maxAllowed - minAllowed,
+                                              value: temp.toDouble(),
+                                              label: '$temp°',
+                                              onChanged: (v) => _setTemp(v.round()),
+                                            ),
+
+                                            const SizedBox(height: 8),
+
+                                            Row(
+                                              children: [
+                                                IconButton(onPressed: () => _setTemp(temp - 1), icon: const Icon(Icons.remove)),
+                                                Expanded(
+                                                  child: TextField(
+                                                    controller: controller,
+                                                    keyboardType: TextInputType.number,
+                                                    textAlign: TextAlign.center,
+                                                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                                                    onChanged: (v) {
+                                                      final p = int.tryParse(v);
+                                                      if (p != null) setS(() => temp = p.clamp(minAllowed, maxAllowed));
+                                                    },
+                                                  ),
+                                                ),
+                                                IconButton(onPressed: () => _setTemp(temp + 1), icon: const Icon(Icons.add)),
+                                              ],
+                                            ),
+
+                                            const SizedBox(height: 12),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: OutlinedButton(
+                                                    onPressed: () {
+                                                      Navigator.of(sheetCtx).pop();
+                                                    },
+                                                    child: const Text('Cancelar'),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(child: ElevatedButton(onPressed: _save, child: const Text('Guardar'))),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          }
+
+                          Widget tempCard({
+                            required String title,
+                            required IconData icon,
+                            required String fieldKey,
+                            required int? currentValue,
+                            required int? otherValue,
+                            required Color accent,
+                          }) {
+                            return Card(
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(color: accent.withOpacity(0.12), shape: BoxShape.circle),
+                                      padding: const EdgeInsets.all(10),
+                                      child: Icon(icon, color: accent, size: 22),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            currentValue != null ? 'Actual: $currentValue °C' : 'Sin configuración',
+                                            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.edit),
+                                          label: const Text('Editar'),
+                                          style: OutlinedButton.styleFrom(minimumSize: const Size(120, 44)),
+                                          onPressed: () {
+                                            _openTempEditor(
+                                              ctx: context,
+                                              fieldKey: fieldKey,
+                                              initialValue: currentValue ?? (fieldKey == 'TempMin' ? 18 : 30),
+                                              minAllowed: 5,
+                                              maxAllowed: 40,
+                                              otherValue: otherValue,
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextButton.icon(
+                                          onPressed:
+                                              currentValue != null
+                                                  ? () async {
+                                                    final confirm =
+                                                        await showDialog<bool>(
+                                                          context: context,
+                                                          builder:
+                                                              (c) => AlertDialog(
+                                                                title: const Text('Borrar configuración'),
+                                                                content: const Text('¿Desea eliminar esta configuración?'),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () => Navigator.of(c).pop(false),
+                                                                    child: const Text('Cancelar'),
+                                                                  ),
+                                                                  ElevatedButton(
+                                                                    onPressed: () => Navigator.of(c).pop(true),
+                                                                    child: const Text('Eliminar'),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                        ) ??
+                                                        false;
+                                                    if (!confirm) return;
+                                                    try {
+                                                      await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({
+                                                        fieldKey: "-",
+                                                      });
+                                                      if (mounted) {
+                                                        ScaffoldMessenger.of(
+                                                          context,
+                                                        ).showSnackBar(const SnackBar(content: Text('Configuración eliminada')));
+                                                      }
+                                                    } catch (e) {
+                                                      await showAlertDialog(
+                                                        context: context,
+                                                        title: 'Error',
+                                                        message: 'No se pudo borrar la configuración.',
+                                                      );
+                                                    }
+                                                  }
+                                                  : null,
+                                          icon: const Icon(Icons.delete_outline, size: 18),
+                                          label: const Text('Borrar'),
+                                          style: TextButton.styleFrom(minimumSize: const Size(80, 36)),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          final minVal = (data['TempMin'] != null) ? int.tryParse(data['TempMin'].toString()) : null;
+                          final maxVal = (data['TempMax'] != null) ? int.tryParse(data['TempMax'].toString()) : null;
+
+                          final minCard = tempCard(
+                            title: 'Temperatura mínima permitida',
+                            icon: Icons.thermostat,
+                            fieldKey: 'TempMin',
+                            currentValue: minVal,
+                            otherValue: maxVal,
+                            accent: Colors.blue,
+                          );
+
+                          final maxCard = tempCard(
+                            title: 'Temperatura máxima permitida',
+                            icon: Icons.thermostat_auto,
+                            fieldKey: 'TempMax',
+                            currentValue: maxVal,
+                            otherValue: minVal,
+                            accent: Colors.red,
+                          );
+
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [Expanded(child: minCard), const SizedBox(width: 12), Expanded(child: maxCard)],
+                            );
+                          } else {
+                            return Column(children: [minCard, const SizedBox(height: 12), maxCard]);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(

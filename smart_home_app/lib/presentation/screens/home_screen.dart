@@ -70,17 +70,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final scafoldKey = GlobalKey<ScaffoldState>();
     final user = FirebaseAuth.instance.currentUser;
-    var temperature = "-";
 
     if (isLoading) {
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     try {
-      final user = FirebaseAuth.instance.currentUser!.uid;
+      final _ = FirebaseAuth.instance.currentUser!.uid;
     } catch (error) {
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final redId = ref.watch(redIdProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text("Bienvenido ${user?.displayName ?? 'Usuario'}")),
@@ -97,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Builder(
                   builder: (context) {
                     final deviceProvValue = ref.watch(devicesProvider);
-                    final List<String> allDevices = (deviceProvValue is List) ? List<String>.from(deviceProvValue) : <String>[];
+                    final List<String> allDevices = List<String>.from(deviceProvValue);
 
                     // candidatas de aire
                     final airCandidates =
@@ -358,7 +356,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Builder(
                   builder: (context) {
                     final deviceProvValue = ref.watch(devicesProvider);
-                    final List<String> allDevices = (deviceProvValue is List) ? List<String>.from(deviceProvValue) : <String>[];
+                    final List<String> allDevices = List<String>.from(deviceProvValue);
 
                     final deviceIdsForLights =
                         allDevices.where((d) {

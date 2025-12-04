@@ -1,9 +1,7 @@
 // my_profile_screen_no_storage_compressed.dart
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
