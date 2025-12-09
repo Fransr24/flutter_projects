@@ -16,27 +16,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       providers: [EmailAuthProvider()],
       showPasswordVisibilityToggle: true,
       headerBuilder: (context, constraints, shrinkOffset) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Image.network(
-              "https://media.istockphoto.com/id/172376898/es/foto/control-de-quemaduras.jpg?s=612x612&w=0&k=20&c=ueLoferYqki03C9KsUnWhW5eGyXBJVmLO8_NpaJ6E0w=",
-            ),
-          ),
-        );
+        return Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Image.asset("assets/AppLogin.png")));
       },
       // sideBuilder para que aparezca la imagen en pantallas anchas
       sideBuilder: (context, shrinkOffset) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Image.network(
-              "https://media.istockphoto.com/id/172376898/es/foto/control-de-quemaduras.jpg?s=612x612&w=0&k=20&c=ueLoferYqki03C9KsUnWhW5eGyXBJVmLO8_NpaJ6E0w=",
-            ),
-          ),
-        );
+        return Padding(padding: const EdgeInsets.all(20), child: AspectRatio(aspectRatio: 1, child: Image.asset("assets/AppLogin.png")));
       },
     );
   }

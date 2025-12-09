@@ -123,6 +123,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
 
                   final MaterialColor coldColor = Colors.lightBlue;
                   final MaterialColor hotColor = Colors.deepOrange;
+                  String? _timeOnMode; // 'frio' | 'calor' | null — se usa solo para mostrar en UI
 
                   // Si llegamos acá hay datos
                   return Column(
@@ -429,14 +430,41 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final isWide = constraints.maxWidth > 520;
+
+                          // Helpers para parsear time+mode si existe (ej: "20:14:1")
+                          String _displayTime(String raw) {
+                            if (raw.isEmpty) return '';
+                            final parts = raw.split(':');
+                            if (parts.length >= 3 && (parts.last == '1' || parts.last == '2')) {
+                              return '${parts[0].padLeft(2, '0')}:${parts[1].padLeft(2, '0')}';
+                            }
+                            // si no tiene sufijo, devolvemos como estaba
+                            return raw;
+                          }
+
+                          String? _modeLabelFromRaw(String raw) {
+                            if (raw.isEmpty) return null;
+                            final parts = raw.split(':');
+                            if (parts.length >= 3) {
+                              final suffix = parts.last;
+                              if (suffix == '1') return 'Calor';
+                              if (suffix == '2') return 'Frío';
+                            }
+                            return null;
+                          }
+
                           Widget scheduleCard({
                             required IconData icon,
                             required String title,
-                            required String currentValue,
+                            required String currentValueRaw,
                             required Future<void> Function() onPick,
                             required Future<void> Function() onClear,
                             required Color accent,
+                            bool showModeIndicator = false,
                           }) {
+                            final display = _displayTime(currentValueRaw);
+                            final modeLabel = _modeLabelFromRaw(currentValueRaw);
+
                             return Card(
                               elevation: 3,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -454,12 +482,33 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                                              ),
+                                              if (showModeIndicator && modeLabel != null)
+                                                Chip(
+                                                  label: Text(modeLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                                  backgroundColor:
+                                                      (modeLabel == 'Frío') ? Colors.lightBlue.shade50 : Colors.deepOrange.shade50,
+                                                  labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                ),
+                                            ],
+                                          ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            currentValue.isNotEmpty ? currentValue + ' hrs' : 'Sin programación',
+                                            display.isNotEmpty ? '$display hrs' : 'Sin programación',
                                             style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                                           ),
+                                          if (showModeIndicator && modeLabel != null)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 6),
+                                              child: Text(
+                                                'Configurado para modo $modeLabel',
+                                                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     ),
@@ -475,7 +524,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                         ),
                                         const SizedBox(height: 6),
                                         TextButton.icon(
-                                          onPressed: currentValue.isNotEmpty ? onClear : null,
+                                          onPressed: currentValueRaw.isNotEmpty ? onClear : null,
                                           icon: const Icon(Icons.delete_outline, size: 18),
                                           label: const Text('Borrar'),
                                           style: TextButton.styleFrom(minimumSize: const Size(80, 36)),
@@ -489,11 +538,54 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                           }
 
                           Future<void> _pickTimeAndSave(String field) async {
+                            String? chosenModeSuffix;
+                            if (field == 'TimeOn') {
+                              final chosenMode = await showDialog<String?>(
+                                context: context,
+                                builder:
+                                    (cctx) => SimpleDialog(
+                                      title: const Text('Seleccionar modo para horario de encendido'),
+                                      children: [
+                                        SimpleDialogOption(
+                                          onPressed: () => Navigator.pop(cctx, '1'),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.local_fire_department, color: Colors.deepOrange),
+                                              const SizedBox(width: 8),
+                                              const Text('Calor'),
+                                            ],
+                                          ),
+                                        ),
+                                        SimpleDialogOption(
+                                          onPressed: () => Navigator.pop(cctx, '2'),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.ac_unit, color: Colors.lightBlue),
+                                              const SizedBox(width: 8),
+                                              const Text('Frío'),
+                                            ],
+                                          ),
+                                        ),
+                                        SimpleDialogOption(onPressed: () => Navigator.pop(cctx, null), child: const Text('Cancelar')),
+                                      ],
+                                    ),
+                              );
+
+                              if (chosenMode == null) return; // canceló selección de modo
+                              chosenModeSuffix = chosenMode;
+                            }
+                            if (field == 'TimeOff') {
+                              chosenModeSuffix = "3";
+                            }
                             final TimeOfDay? picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
                             if (picked == null) return;
+
                             final formatted = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
+
+                            final toSave = '$formatted:$chosenModeSuffix';
+
                             try {
-                              await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({field: formatted});
+                              await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({field: toSave});
                               if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Horario guardado')));
                             } catch (e) {
                               await showAlertDialog(
@@ -536,18 +628,21 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                           final onCard = scheduleCard(
                             icon: Icons.power_settings_new,
                             title: 'Horario de encendido',
-                            currentValue: timeOn,
+                            currentValueRaw: timeOn,
                             onPick: () => _pickTimeAndSave('TimeOn'),
                             onClear: () => _clearTime('TimeOn'),
                             accent: Colors.green,
+                            showModeIndicator: true,
                           );
+
                           final offCard = scheduleCard(
                             icon: Icons.power_off,
                             title: 'Horario de apagado',
-                            currentValue: timeOff,
+                            currentValueRaw: timeOff,
                             onPick: () => _pickTimeAndSave('TimeOff'),
                             onClear: () => _clearTime('TimeOff'),
                             accent: Colors.redAccent,
+                            showModeIndicator: false,
                           );
 
                           if (isWide) {
@@ -743,7 +838,9 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                           Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                                           const SizedBox(height: 6),
                                           Text(
-                                            currentValue != null ? 'Actual: $currentValue °C' : 'Sin configuración',
+                                            ((currentValue != null) && currentValue.abs() != 200)
+                                                ? 'Actual: $currentValue °C'
+                                                : 'Sin configuración',
                                             style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                                           ),
                                         ],
@@ -771,7 +868,7 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                         const SizedBox(height: 8),
                                         TextButton.icon(
                                           onPressed:
-                                              currentValue != null
+                                              ((currentValue != null) && currentValue.abs() != 200)
                                                   ? () async {
                                                     final confirm =
                                                         await showDialog<bool>(
@@ -795,8 +892,14 @@ class _AirConditioningScreenState extends State<AirConditioningScreen> {
                                                         false;
                                                     if (!confirm) return;
                                                     try {
+                                                      late int value;
+                                                      if (fieldKey == "TempMin") {
+                                                        value = -200;
+                                                      } else {
+                                                        value = 200;
+                                                      }
                                                       await FirebaseDatabase.instance.ref("air/$selectedAirConditioning").update({
-                                                        fieldKey: "-",
+                                                        fieldKey: value,
                                                       });
                                                       if (mounted) {
                                                         ScaffoldMessenger.of(

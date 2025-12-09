@@ -55,13 +55,13 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
             final collection = idStr.startsWith('MLP') ? 'lights' : (idStr.startsWith('AIR') ? 'air' : null);
 
             if (collection == null) {
-              return _DeviceModel(id: idStr, collection: 'unknown', name: idStr, description: '', connected: false);
+              return null;
             }
 
             final snap = await FirebaseDatabase.instance.ref('$collection/$idStr').get();
 
             if (!snap.exists || snap.value == null) {
-              return _DeviceModel(id: idStr, collection: collection, name: idStr, description: '', connected: false);
+              return null;
             }
 
             final data = snap.value as Map<dynamic, dynamic>;
@@ -74,9 +74,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           }).toList();
 
       final results = await Future.wait(futures);
+      final devices = results.whereType<_DeviceModel>().toList();
 
-      final connectedList = results.where((d) => d.connected).toList();
-      final disconnectedList = results.where((d) => !d.connected).toList();
+      final connectedList = devices.where((d) => d.connected).toList();
+      final disconnectedList = devices.where((d) => !d.connected).toList();
 
       // ordena por nombre
       connectedList.sort((a, b) => a.name.compareTo(b.name));

@@ -465,8 +465,8 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
                 title: const Text('Cancelar configuración'),
                 content: const Text('¿Desea cancelar la configuración actual?'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Volver')),
-                  ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Cancelar')),
+                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('No')),
+                  ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Si')),
                 ],
               ),
         ) ??
@@ -526,7 +526,7 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
     _pollTimer = null;
     _polling = false;
     _pollSeconds = 0;
-    setState(() {});
+    //setState(() {});
   }
 
   Future<void> _handlePollingTimeout() async {
@@ -610,7 +610,7 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
       appBar: AppBar(
         title: Text('Configurando: $modeLabel'),
         automaticallyImplyLeading: false,
-        actions: [IconButton(onPressed: _isLoading ? null : _onCancel, icon: const Icon(Icons.cancel))],
+        //  actions: [IconButton(onPressed: _isLoading ? null : _onCancel, icon: const Icon(Icons.cancel))],
       ),
       body: SafeArea(
         child: Padding(
@@ -773,32 +773,6 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
                                                                         children: [
                                                                           SizedBox(
                                                                             height: 44,
-                                                                            child: TextButton.icon(
-                                                                              onPressed: _polling ? null : () => _startPolling(),
-                                                                              icon: const Icon(Icons.play_arrow),
-                                                                              label: const Text('Iniciar espera'),
-                                                                              style: TextButton.styleFrom(minimumSize: const Size(120, 44)),
-                                                                            ),
-                                                                          ),
-                                                                          SizedBox(
-                                                                            height: 44,
-                                                                            child: TextButton.icon(
-                                                                              onPressed:
-                                                                                  _polling
-                                                                                      ? () {
-                                                                                        _stopPolling();
-                                                                                        ScaffoldMessenger.of(context).showSnackBar(
-                                                                                          const SnackBar(content: Text('Espera detenida')),
-                                                                                        );
-                                                                                      }
-                                                                                      : null,
-                                                                              icon: const Icon(Icons.stop),
-                                                                              label: const Text('Detener'),
-                                                                              style: TextButton.styleFrom(minimumSize: const Size(120, 44)),
-                                                                            ),
-                                                                          ),
-                                                                          SizedBox(
-                                                                            height: 44,
                                                                             child: OutlinedButton.icon(
                                                                               onPressed: _polling ? null : () => _startPolling(),
                                                                               icon: const Icon(Icons.refresh),
@@ -862,14 +836,14 @@ class _AirConfigWizardDBFieldsState extends State<AirConfigWizardDBFields> {
 
               Row(
                 children: [
-                  Expanded(
+                  /* Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Anterior'),
                       onPressed: _pageIndex == 0 || _isLoading ? null : _onPrev,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 12), */
                   Expanded(
                     child: ElevatedButton.icon(
                       icon: Icon(_pageIndex == _groupedSteps.length - 1 ? Icons.check : Icons.arrow_forward),
